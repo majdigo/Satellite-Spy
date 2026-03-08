@@ -3,7 +3,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { useAppStore } from "@/store";
 import { computeOrbitPath } from "@/lib/api/satellites";
-import type { SatellitePosition, AircraftPosition, GDELTEvent, ConflictEvent } from "@/types";
+import type { SatellitePosition, AircraftPosition, GDELTEvent, ConflictEvent, NaturalDisaster } from "@/types";
 import type { Cartesian2 as CesiumCartesian2 } from "cesium";
 
 let Cesium: typeof import("cesium") | null = null;
@@ -22,6 +22,7 @@ export default function GlobeViewer({ className }: GlobeViewerProps) {
     aircraft,
     gdeltEvents,
     conflicts,
+    disasters,
     layers,
     visualFilter,
     showSatelliteOrbits,
@@ -302,6 +303,65 @@ export default function GlobeViewer({ className }: GlobeViewerProps) {
           entitiesRef.current.set(key, entity);
         }
       }
+
+      // Clean up removed aircraft
+      for (const [key, entity] of entitiesRef.current) {
+        if (key.startsWith("ac-") && !existingKeys.has(key)) {
+          viewer.entities.remove(entity as InstanceType<typeof Cesium.Entity>);
+          entitiesRef.current.delete(key);
+        }
+      }
+    },
+    [layers]
+  );
+
+  // Disaster layer
+  const updateDisasters = useCallback(
+    (disasterData: NaturalDisaster[]) => {
+      if (!viewerRef.current || !Cesium) return;
+      const viewer = viewerRef.current;
+      const disLayer = layers.find((l) => l.id === "disasters");
+      if (!disLayer?.visible) return;
+
+      for (const disaster of disasterData.slice(0, 200)) {
+        const key = `dis-${disaster.id}`;
+        if (entitiesRef.current.has(key)) continue;
+
+        const color =
+          disaster.severity === "critical"
+            ? Cesium.Color.MAGENTA
+            : disaster.severity === "high"
+            ? Cesium.Color.ORANGE
+            : Cesium.Color.YELLOW;
+
+        const size = disaster.severity === "critical" ? 10 : disaster.severity === "high" ? 7 : 5;
+
+        const entity = viewer.entities.add({
+          id: key,
+          position: Cesium.Cartesian3.fromDegrees(disaster.longitude, disaster.latitude),
+          point: {
+            pixelSize: size,
+            color: color.withAlpha(0.9),
+            outlineColor: color.withAlpha(0.4),
+            outlineWidth: 6,
+          },
+          label: (disaster.severity === "critical" || disaster.severity === "high") ? {
+            text: disaster.title.substring(0, 30),
+            font: "10px monospace",
+            fillColor: color,
+            outlineColor: Cesium.Color.BLACK,
+            outlineWidth: 2,
+            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+            pixelOffset: new Cesium.Cartesian2(12, 0),
+            scaleByDistance: new Cesium.NearFarScalar(1e5, 1, 5e6, 0),
+          } : undefined,
+          properties: {
+            type: "disaster",
+            data: JSON.stringify(disaster),
+          },
+        });
+        entitiesRef.current.set(key, entity);
+      }
     },
     [layers]
   );
@@ -409,6 +469,7 @@ export default function GlobeViewer({ className }: GlobeViewerProps) {
   useEffect(() => { updateAircraft(aircraft); }, [aircraft, updateAircraft]);
   useEffect(() => { updateEvents(gdeltEvents); }, [gdeltEvents, updateEvents]);
   useEffect(() => { updateConflicts(conflicts); }, [conflicts, updateConflicts]);
+  useEffect(() => { updateDisasters(disasters); }, [disasters, updateDisasters]);
 
   // Focus location
   useEffect(() => {

@@ -288,6 +288,52 @@ export type PanelType =
   | "correlation"
   | "intel_report";
 
+// --- Alert / Notification Types ---
+export interface Alert {
+  id: string;
+  type: AlertType;
+  severity: SeverityLevel;
+  title: string;
+  message: string;
+  timestamp: Date;
+  location?: { lat: number; lon: number };
+  acknowledged: boolean;
+  source: string;
+  relatedEntityId?: string;
+}
+
+export type AlertType =
+  | "conflict_escalation"
+  | "new_disaster"
+  | "satellite_overhead"
+  | "military_activity"
+  | "economic_shock"
+  | "media_surge"
+  | "threshold_breach"
+  | "system";
+
+// --- Region / Scenario Types ---
+export interface WatchRegion {
+  id: string;
+  name: string;
+  description: string;
+  bounds: { north: number; south: number; east: number; west: number };
+  center: { lat: number; lon: number };
+  zoom: number;
+  countries: string[];
+  watchKeywords: string[];
+  active: boolean;
+}
+
+// --- Data Loading States ---
+export interface DataSourceStatus {
+  source: string;
+  status: "idle" | "loading" | "success" | "error";
+  lastUpdated: Date | null;
+  count: number;
+  error?: string;
+}
+
 // --- AI Plugin Architecture Types ---
 export interface AIPluginConfig {
   id: string;
