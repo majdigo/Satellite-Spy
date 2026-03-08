@@ -86,12 +86,19 @@ export default function GlobeViewer({ className }: GlobeViewerProps) {
         const picked = viewer.scene.pick(movement.position);
         if (Cesium!.defined(picked) && picked.id) {
           const entity = picked.id;
-          if (entity.properties?.type?.getValue(Cesium!.JulianDate.now()) === "satellite") {
-            const satData = entity.properties.data?.getValue(Cesium!.JulianDate.now());
-            if (satData) setSelectedSatellite(JSON.parse(satData));
-          } else if (entity.properties?.type?.getValue(Cesium!.JulianDate.now()) === "aircraft") {
-            const acData = entity.properties.data?.getValue(Cesium!.JulianDate.now());
-            if (acData) setSelectedAircraft(JSON.parse(acData));
+          const now = Cesium!.JulianDate.now();
+          try {
+            const entityType = entity.properties?.type?.getValue(now);
+            const rawData = entity.properties?.data?.getValue(now);
+            if (!rawData) return;
+            const parsed = JSON.parse(rawData);
+            if (entityType === "satellite") {
+              setSelectedSatellite(parsed);
+            } else if (entityType === "aircraft") {
+              setSelectedAircraft(parsed);
+            }
+          } catch {
+            // Ignore malformed entity data
           }
         }
       }, Cesium.ScreenSpaceEventType.LEFT_CLICK);

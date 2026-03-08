@@ -1,13 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { parseOpenSkyData } from "@/lib/api/aircraft";
 
 const OPENSKY_API = "https://opensky-network.org/api/states/all";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const headers: Record<string, string> = {};
 
-    // Use credentials if available
     const username = process.env.OPENSKY_USERNAME;
     const password = process.env.OPENSKY_PASSWORD;
     if (username && password) {
@@ -15,9 +14,20 @@ export async function GET() {
         "Basic " + Buffer.from(`${username}:${password}`).toString("base64");
     }
 
-    const response = await fetch(OPENSKY_API, {
+    // Support bounding box filtering
+    let url = OPENSKY_API;
+    const lamin = request.nextUrl.searchParams.get("lamin");
+    const lomin = request.nextUrl.searchParams.get("lomin");
+    const lamax = request.nextUrl.searchParams.get("lamax");
+    const lomax = request.nextUrl.searchParams.get("lomax");
+
+    if (lamin && lomin && lamax && lomax) {
+      url += `?lamin=${lamin}&lomin=${lomin}&lamax=${lamax}&lomax=${lomax}`;
+    }
+
+    const response = await fetch(url, {
       headers,
-      next: { revalidate: 10 }, // Cache for 10 seconds
+      next: { revalidate: 10 },
     });
 
     if (!response.ok) {

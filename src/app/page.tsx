@@ -6,6 +6,7 @@ import TopBar from "@/components/dashboard/TopBar";
 import Sidebar from "@/components/dashboard/Sidebar";
 import BottomBar from "@/components/dashboard/BottomBar";
 import { useAppStore } from "@/store";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 
 const GlobeViewer = dynamic(
   () => import("@/components/globe/GlobeViewer"),
@@ -41,7 +42,9 @@ export default function HomePage() {
 
       {/* Main 3D Globe */}
       <div className="absolute inset-0 pt-14 pl-10 pb-24">
-        <GlobeViewer className="w-full h-full" />
+        <ErrorBoundary>
+          <GlobeViewer className="w-full h-full" />
+        </ErrorBoundary>
       </div>
 
       <BottomBar />

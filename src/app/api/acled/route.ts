@@ -22,6 +22,7 @@ function assessSeverity(fatalities: number, eventType: ConflictEventType): Sever
 
 export async function GET(request: NextRequest) {
   const country = request.nextUrl.searchParams.get("country") || "";
+  const countries = request.nextUrl.searchParams.get("countries") || "";
   const limit = request.nextUrl.searchParams.get("limit") || "500";
 
   const apiKey = process.env.ACLED_API_KEY;
@@ -38,7 +39,15 @@ export async function GET(request: NextRequest) {
 
   try {
     let url = `${ACLED_API}?key=${apiKey}&email=${encodeURIComponent(email)}&limit=${limit}`;
-    if (country) url += `&country=${encodeURIComponent(country)}`;
+    if (country) {
+      url += `&country=${encodeURIComponent(country)}`;
+    } else if (countries) {
+      // Support comma-separated ISO country codes from watch regions
+      const countryList = countries.split(",").map((c: string) => c.trim()).filter(Boolean);
+      if (countryList.length > 0) {
+        url += `&iso=${countryList.join("|")}`;
+      }
+    }
     url += `&event_date=${new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]}|${new Date().toISOString().split("T")[0]}&event_date_where=BETWEEN`;
 
     const response = await fetch(url, {
