@@ -23,7 +23,6 @@ export default function GlobeViewer({ className }: GlobeViewerProps) {
     gdeltEvents,
     conflicts,
     disasters,
-    layers,
     visualFilter,
     showSatelliteOrbits,
     setSelectedSatellite,
@@ -135,7 +134,8 @@ export default function GlobeViewer({ className }: GlobeViewerProps) {
     (sats: SatellitePosition[]) => {
       if (!viewerRef.current || !Cesium) return;
       const viewer = viewerRef.current;
-      const satLayer = layers.find((l) => l.id === "satellites");
+      const currentLayers = useAppStore.getState().layers;
+      const satLayer = currentLayers.find((l) => l.id === "satellites");
       if (!satLayer?.visible) {
         // Remove existing satellite entities
         for (const [key, entity] of entitiesRef.current) {
@@ -240,7 +240,7 @@ export default function GlobeViewer({ className }: GlobeViewerProps) {
         }
       }
     },
-    [layers, showSatelliteOrbits]
+    [showSatelliteOrbits]
   );
 
   // Aircraft layer
@@ -248,7 +248,8 @@ export default function GlobeViewer({ className }: GlobeViewerProps) {
     (acs: AircraftPosition[]) => {
       if (!viewerRef.current || !Cesium) return;
       const viewer = viewerRef.current;
-      const acLayer = layers.find((l) => l.id === "aircraft");
+      const currentLayers = useAppStore.getState().layers;
+      const acLayer = currentLayers.find((l) => l.id === "aircraft");
       if (!acLayer?.visible) return;
 
       const existingKeys = new Set<string>();
@@ -319,7 +320,7 @@ export default function GlobeViewer({ className }: GlobeViewerProps) {
         }
       }
     },
-    [layers]
+    []
   );
 
   // Disaster layer
@@ -327,7 +328,8 @@ export default function GlobeViewer({ className }: GlobeViewerProps) {
     (disasterData: NaturalDisaster[]) => {
       if (!viewerRef.current || !Cesium) return;
       const viewer = viewerRef.current;
-      const disLayer = layers.find((l) => l.id === "disasters");
+      const currentLayers = useAppStore.getState().layers;
+      const disLayer = currentLayers.find((l) => l.id === "disasters");
       if (!disLayer?.visible) return;
 
       for (const disaster of disasterData.slice(0, 200)) {
@@ -370,7 +372,7 @@ export default function GlobeViewer({ className }: GlobeViewerProps) {
         entitiesRef.current.set(key, entity);
       }
     },
-    [layers]
+    []
   );
 
   // Geopolitical events layer
@@ -378,7 +380,8 @@ export default function GlobeViewer({ className }: GlobeViewerProps) {
     (events: GDELTEvent[]) => {
       if (!viewerRef.current || !Cesium) return;
       const viewer = viewerRef.current;
-      const geoLayer = layers.find((l) => l.id === "geopolitical");
+      const currentLayers = useAppStore.getState().layers;
+      const geoLayer = currentLayers.find((l) => l.id === "geopolitical");
       if (!geoLayer?.visible) return;
 
       for (const event of events.slice(0, 500)) {
@@ -408,7 +411,7 @@ export default function GlobeViewer({ className }: GlobeViewerProps) {
         entitiesRef.current.set(key, entity);
       }
     },
-    [layers]
+    []
   );
 
   // Conflict layer
@@ -416,7 +419,8 @@ export default function GlobeViewer({ className }: GlobeViewerProps) {
     (conflictsData: ConflictEvent[]) => {
       if (!viewerRef.current || !Cesium) return;
       const viewer = viewerRef.current;
-      const confLayer = layers.find((l) => l.id === "conflicts");
+      const currentLayers = useAppStore.getState().layers;
+      const confLayer = currentLayers.find((l) => l.id === "conflicts");
       if (!confLayer?.visible) return;
 
       for (const conflict of conflictsData.slice(0, 500)) {
@@ -468,15 +472,20 @@ export default function GlobeViewer({ className }: GlobeViewerProps) {
         entitiesRef.current.set(key, entity);
       }
     },
-    [layers]
+    []
   );
 
-  // Update layers when data changes
-  useEffect(() => { updateSatellites(satellites); }, [satellites, updateSatellites]);
-  useEffect(() => { updateAircraft(aircraft); }, [aircraft, updateAircraft]);
-  useEffect(() => { updateEvents(gdeltEvents); }, [gdeltEvents, updateEvents]);
-  useEffect(() => { updateConflicts(conflicts); }, [conflicts, updateConflicts]);
-  useEffect(() => { updateDisasters(disasters); }, [disasters, updateDisasters]);
+  // Subscribe to layer visibility changes to trigger re-renders
+  const layerVisibility = useAppStore((s) =>
+    s.layers.map((l) => `${l.id}:${l.visible}`).join(",")
+  );
+
+  // Update layers when data or visibility changes
+  useEffect(() => { updateSatellites(satellites); }, [satellites, updateSatellites, layerVisibility]);
+  useEffect(() => { updateAircraft(aircraft); }, [aircraft, updateAircraft, layerVisibility]);
+  useEffect(() => { updateEvents(gdeltEvents); }, [gdeltEvents, updateEvents, layerVisibility]);
+  useEffect(() => { updateConflicts(conflicts); }, [conflicts, updateConflicts, layerVisibility]);
+  useEffect(() => { updateDisasters(disasters); }, [disasters, updateDisasters, layerVisibility]);
 
   // Focus location
   useEffect(() => {

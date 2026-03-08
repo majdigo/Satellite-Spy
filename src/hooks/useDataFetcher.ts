@@ -257,31 +257,41 @@ export function useDataFetcher() {
     setIntelReports(reports);
   }, [setCorrelations, setIntelReports]);
 
+  // Use refs to always call the latest version of callbacks without restarting intervals
+  const callbackRefs = useRef({
+    fetchSatellites, fetchAircraft, fetchGDELT, fetchConflicts,
+    fetchDisasters, fetchEconomic, updateSatellitePositions, runAnalysis,
+  });
+  callbackRefs.current = {
+    fetchSatellites, fetchAircraft, fetchGDELT, fetchConflicts,
+    fetchDisasters, fetchEconomic, updateSatellitePositions, runAnalysis,
+  };
+
   useEffect(() => {
     // Initial fetch
-    fetchSatellites();
-    fetchAircraft();
-    fetchGDELT();
-    fetchConflicts();
-    fetchDisasters();
-    fetchEconomic();
+    callbackRefs.current.fetchSatellites();
+    callbackRefs.current.fetchAircraft();
+    callbackRefs.current.fetchGDELT();
+    callbackRefs.current.fetchConflicts();
+    callbackRefs.current.fetchDisasters();
+    callbackRefs.current.fetchEconomic();
 
     // Satellite position updates every 5s
-    const satInterval = setInterval(updateSatellitePositions, 5000);
+    const satInterval = setInterval(() => callbackRefs.current.updateSatellitePositions(), 5000);
     // Aircraft refresh every 15s
-    const acInterval = setInterval(fetchAircraft, 15000);
+    const acInterval = setInterval(() => callbackRefs.current.fetchAircraft(), 15000);
     // GDELT refresh every 5 min
-    const gdeltInterval = setInterval(fetchGDELT, 300000);
+    const gdeltInterval = setInterval(() => callbackRefs.current.fetchGDELT(), 300000);
     // Conflicts refresh every 10 min
-    const conflictInterval = setInterval(fetchConflicts, 600000);
+    const conflictInterval = setInterval(() => callbackRefs.current.fetchConflicts(), 600000);
     // Disasters refresh every 15 min
-    const disasterInterval = setInterval(fetchDisasters, 900000);
+    const disasterInterval = setInterval(() => callbackRefs.current.fetchDisasters(), 900000);
     // TLE re-fetch every hour
-    const tleInterval = setInterval(fetchSatellites, 3600000);
+    const tleInterval = setInterval(() => callbackRefs.current.fetchSatellites(), 3600000);
     // Run analysis every 2 min
-    const analysisInterval = setInterval(runAnalysis, 120000);
+    const analysisInterval = setInterval(() => callbackRefs.current.runAnalysis(), 120000);
     // Initial analysis after 10s (give data time to load)
-    const analysisTimeout = setTimeout(runAnalysis, 10000);
+    const analysisTimeout = setTimeout(() => callbackRefs.current.runAnalysis(), 10000);
 
     return () => {
       clearInterval(satInterval);
@@ -293,8 +303,5 @@ export function useDataFetcher() {
       clearInterval(analysisInterval);
       clearTimeout(analysisTimeout);
     };
-  }, [
-    fetchSatellites, fetchAircraft, fetchGDELT, fetchConflicts,
-    fetchDisasters, fetchEconomic, updateSatellitePositions, runAnalysis,
-  ]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 }
