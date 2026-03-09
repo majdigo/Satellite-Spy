@@ -11,6 +11,7 @@ import EconomicPanel from "@/components/panels/EconomicPanel";
 import AlertsPanel from "@/components/panels/AlertsPanel";
 import WatchRegionsPanel from "@/components/panels/WatchRegionsPanel";
 import IntelligencePanel from "@/components/panels/IntelligencePanel";
+import CrossIntelligencePanel from "@/components/panels/CrossIntelligencePanel";
 import DataStatusPanel from "@/components/panels/DataStatusPanel";
 
 type SidebarTab =
@@ -21,6 +22,7 @@ type SidebarTab =
   | "events"
   | "threats"
   | "intel"
+  | "crossintel"
   | "correlations"
   | "economic"
   | "status";
@@ -33,6 +35,7 @@ const TABS: { id: SidebarTab; label: string; icon: string }[] = [
   { id: "events", label: "EVENTS", icon: ">" },
   { id: "threats", label: "THREATS", icon: "X" },
   { id: "intel", label: "INTEL", icon: "i" },
+  { id: "crossintel", label: "X-INT", icon: "⊕" },
   { id: "correlations", label: "CORR", icon: "~" },
   { id: "economic", label: "ECON", icon: "$" },
   { id: "status", label: "SYS", icon: "=" },
@@ -103,6 +106,7 @@ export default function Sidebar() {
           {activeTab === "events" && <EventFeed />}
           {activeTab === "threats" && <ThreatAssessmentPanel />}
           {activeTab === "intel" && <IntelligencePanel />}
+          {activeTab === "crossintel" && <CrossIntelligencePanel />}
           {activeTab === "correlations" && <CorrelationPanel />}
           {activeTab === "economic" && <EconomicPanel />}
           {activeTab === "status" && <DataStatusPanel />}

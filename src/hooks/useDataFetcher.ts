@@ -5,6 +5,12 @@ import { useAppStore } from "@/store";
 import { propagateSatellite, categorizeSatellite } from "@/lib/api/satellites";
 import { generateCorrelations } from "@/lib/api/correlation";
 import { generateIntelReports } from "@/lib/api/intelligence";
+import {
+  generateCrossIntelligenceAlerts,
+  detectMarketAnomalies,
+  detectSatelliteSurveillancePatterns,
+  detectMilitaryAircraftPatterns,
+} from "@/lib/api/cross-intelligence";
 import type { TLEData, SatellitePosition, Alert, ConflictEvent } from "@/types";
 
 export function useDataFetcher() {
@@ -20,6 +26,11 @@ export function useDataFetcher() {
     addAlert,
     updateDataSource,
     activeRegion,
+    setMarketData,
+    setMarketAnomalies,
+    setCrossIntelAlerts,
+    setSatSurveillancePatterns,
+    setMilitaryAircraftPatterns,
   } = useAppStore();
 
   const tleCache = useRef<TLEData[]>([]);
@@ -234,6 +245,24 @@ export function useDataFetcher() {
     }
   }, [setEconomicData, updateDataSource]);
 
+  const fetchMarket = useCallback(async () => {
+    updateDataSource("Market", { status: "loading" });
+    try {
+      const resp = await fetch("/api/market");
+      if (!resp.ok) return;
+      const data = await resp.json();
+      setMarketData(data.market || []);
+      updateDataSource("Market", {
+        status: "success",
+        lastUpdated: new Date(),
+        count: data.market?.length || 0,
+      });
+    } catch (err) {
+      console.error("Failed to fetch market data:", err);
+      updateDataSource("Market", { status: "error", error: String(err) });
+    }
+  }, [setMarketData, updateDataSource]);
+
   // Run correlation & intelligence analysis after data loads
   const runAnalysis = useCallback(() => {
     const state = useAppStore.getState();
@@ -255,16 +284,59 @@ export function useDataFetcher() {
       correlations,
     });
     setIntelReports(reports);
-  }, [setCorrelations, setIntelReports]);
+
+    // Cross-intelligence analysis
+    if (state.marketData.length > 0 || state.satellites.length > 0) {
+      const marketAnomalies = detectMarketAnomalies(
+        state.marketData, state.conflicts, state.gdeltEvents
+      );
+      setMarketAnomalies(marketAnomalies);
+
+      const satPatterns = detectSatelliteSurveillancePatterns(
+        state.satellites, state.conflicts, state.watchRegions
+      );
+      setSatSurveillancePatterns(satPatterns);
+
+      const acPatterns = detectMilitaryAircraftPatterns(
+        state.aircraft, state.conflicts, state.watchRegions
+      );
+      setMilitaryAircraftPatterns(acPatterns);
+
+      const crossAlerts = generateCrossIntelligenceAlerts({
+        market: state.marketData,
+        conflicts: state.conflicts,
+        gdeltEvents: state.gdeltEvents,
+        satellites: state.satellites,
+        aircraft: state.aircraft,
+        disasters: state.disasters,
+        watchRegions: state.watchRegions,
+      });
+      setCrossIntelAlerts(crossAlerts);
+
+      // Generate alerts for critical cross-intel findings
+      for (const alert of crossAlerts.filter((a) => a.severity === "critical").slice(0, 2)) {
+        addAlert({
+          id: `alert-cross-${Date.now()}-${alert.id}`,
+          type: "threshold_breach",
+          severity: "critical",
+          title: `CROSS-INTEL: ${alert.title}`,
+          message: alert.summary,
+          timestamp: new Date(),
+          acknowledged: false,
+          source: "Cross-Intelligence Engine",
+        });
+      }
+    }
+  }, [setCorrelations, setIntelReports, setMarketAnomalies, setCrossIntelAlerts, setSatSurveillancePatterns, setMilitaryAircraftPatterns, addAlert]);
 
   // Use refs to always call the latest version of callbacks without restarting intervals
   const callbackRefs = useRef({
     fetchSatellites, fetchAircraft, fetchGDELT, fetchConflicts,
-    fetchDisasters, fetchEconomic, updateSatellitePositions, runAnalysis,
+    fetchDisasters, fetchEconomic, fetchMarket, updateSatellitePositions, runAnalysis,
   });
   callbackRefs.current = {
     fetchSatellites, fetchAircraft, fetchGDELT, fetchConflicts,
-    fetchDisasters, fetchEconomic, updateSatellitePositions, runAnalysis,
+    fetchDisasters, fetchEconomic, fetchMarket, updateSatellitePositions, runAnalysis,
   };
 
   useEffect(() => {
@@ -275,6 +347,7 @@ export function useDataFetcher() {
     callbackRefs.current.fetchConflicts();
     callbackRefs.current.fetchDisasters();
     callbackRefs.current.fetchEconomic();
+    callbackRefs.current.fetchMarket();
 
     // Satellite position updates every 5s
     const satInterval = setInterval(() => callbackRefs.current.updateSatellitePositions(), 5000);
@@ -288,6 +361,8 @@ export function useDataFetcher() {
     const disasterInterval = setInterval(() => callbackRefs.current.fetchDisasters(), 900000);
     // TLE re-fetch every hour
     const tleInterval = setInterval(() => callbackRefs.current.fetchSatellites(), 3600000);
+    // Market data refresh every 1 min
+    const marketInterval = setInterval(() => callbackRefs.current.fetchMarket(), 60000);
     // Run analysis every 2 min
     const analysisInterval = setInterval(() => callbackRefs.current.runAnalysis(), 120000);
     // Initial analysis after 10s (give data time to load)
@@ -300,6 +375,7 @@ export function useDataFetcher() {
       clearInterval(conflictInterval);
       clearInterval(disasterInterval);
       clearInterval(tleInterval);
+      clearInterval(marketInterval);
       clearInterval(analysisInterval);
       clearTimeout(analysisTimeout);
     };

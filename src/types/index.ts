@@ -368,3 +368,142 @@ export interface AIAnalysisResponse {
   processingTime: number;
   metadata?: Record<string, unknown>;
 }
+
+// --- Market / Commodity Data Types ---
+export interface MarketData {
+  symbol: string;
+  name: string;
+  category: MarketCategory;
+  price: number;
+  previousClose: number;
+  changePercent: number;
+  volume: number;
+  avgVolume: number;
+  volumeAnomaly: number; // ratio vs avg (>2 = suspicious)
+  high52w: number;
+  low52w: number;
+  timestamp: string;
+  source: string;
+}
+
+export type MarketCategory =
+  | "energy"
+  | "metals"
+  | "agriculture"
+  | "defense"
+  | "index"
+  | "currency"
+  | "crypto";
+
+export interface MarketAnomaly {
+  id: string;
+  symbol: string;
+  name: string;
+  category: MarketCategory;
+  anomalyType: MarketAnomalyType;
+  severity: SeverityLevel;
+  description: string;
+  priceChange: number;
+  volumeRatio: number;
+  timestamp: string;
+  relatedRegion?: string;
+  relatedCountries?: string[];
+}
+
+export type MarketAnomalyType =
+  | "volume_spike"
+  | "price_surge"
+  | "price_crash"
+  | "pre_event_movement"
+  | "post_event_movement"
+  | "unusual_options_activity"
+  | "sector_rotation";
+
+// --- Satellite Surveillance Pattern Types ---
+export interface SatelliteSurveillancePattern {
+  id: string;
+  satelliteIds: string[];
+  satelliteNames: string[];
+  patternType: SurveillancePatternType;
+  targetRegion: string;
+  targetCoordinates: { lat: number; lon: number };
+  frequency: number; // passes per day
+  baselineFrequency: number;
+  anomalyScore: number; // 0-100
+  ownerCountries: string[];
+  startDetected: string;
+  description: string;
+  relatedConflictIds?: string[];
+  phase: "pre_event" | "during_event" | "post_event" | "ongoing";
+}
+
+export type SurveillancePatternType =
+  | "increased_passes"
+  | "new_coverage"
+  | "formation_change"
+  | "orbit_adjustment"
+  | "persistent_surveillance"
+  | "battle_damage_assessment";
+
+// --- Military Aircraft Pattern Types ---
+export interface MilitaryAircraftPattern {
+  id: string;
+  patternType: AircraftPatternType;
+  aircraftIds: string[];
+  region: string;
+  coordinates: { lat: number; lon: number };
+  count: number;
+  baselineCount: number;
+  description: string;
+  relatedConflictIds?: string[];
+  timestamp: string;
+}
+
+export type AircraftPatternType =
+  | "fighter_surge"
+  | "bomber_deployment"
+  | "tanker_activity"
+  | "awacs_orbit"
+  | "transport_surge"
+  | "civilian_avoidance"
+  | "no_fly_zone";
+
+// --- Cross-Intelligence Correlation Types ---
+export interface CrossIntelligenceAlert {
+  id: string;
+  title: string;
+  summary: string;
+  category: CrossIntelCategory;
+  severity: SeverityLevel;
+  confidence: number; // 0-100
+  timestamp: Date;
+  signals: CrossIntelSignal[];
+  region: string;
+  countries: string[];
+  marketImpact?: {
+    symbols: string[];
+    direction: "bullish" | "bearish" | "volatile";
+    magnitude: "minor" | "moderate" | "major";
+  };
+  suspicionLevel: "none" | "low" | "moderate" | "high" | "very_high";
+  narrative: string;
+  recommendations: string[];
+}
+
+export type CrossIntelCategory =
+  | "market_manipulation"
+  | "insider_trading_suspicion"
+  | "conflict_profiteering"
+  | "sanctions_evasion"
+  | "resource_warfare"
+  | "preemptive_positioning"
+  | "surveillance_escalation"
+  | "military_buildup";
+
+export interface CrossIntelSignal {
+  source: "satellite" | "aircraft" | "market" | "conflict" | "gdelt" | "economic" | "disaster";
+  description: string;
+  timestamp: string;
+  severity: SeverityLevel;
+  dataPointId?: string;
+}

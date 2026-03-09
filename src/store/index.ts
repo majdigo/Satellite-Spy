@@ -16,6 +16,11 @@ import type {
   Alert,
   WatchRegion,
   DataSourceStatus,
+  MarketData,
+  CrossIntelligenceAlert,
+  SatelliteSurveillancePattern,
+  MilitaryAircraftPattern,
+  MarketAnomaly,
 } from "@/types";
 
 interface AppState {
@@ -78,6 +83,19 @@ interface AppState {
   setHighlightedEntityId: (id: string | null) => void;
   minSeverity: SeverityLevel;
   setMinSeverity: (severity: SeverityLevel) => void;
+  // Market & Cross-Intelligence
+  marketData: MarketData[];
+  setMarketData: (data: MarketData[]) => void;
+  marketAnomalies: MarketAnomaly[];
+  setMarketAnomalies: (anomalies: MarketAnomaly[]) => void;
+  crossIntelAlerts: CrossIntelligenceAlert[];
+  setCrossIntelAlerts: (alerts: CrossIntelligenceAlert[]) => void;
+  satSurveillancePatterns: SatelliteSurveillancePattern[];
+  setSatSurveillancePatterns: (patterns: SatelliteSurveillancePattern[]) => void;
+  militaryAircraftPatterns: MilitaryAircraftPattern[];
+  setMilitaryAircraftPatterns: (patterns: MilitaryAircraftPattern[]) => void;
+  llmAnalysisResults: Array<{ id: string; query: string; result: string; timestamp: Date }>;
+  addLlmAnalysisResult: (result: { id: string; query: string; result: string; timestamp: Date }) => void;
 }
 
 const defaultLayers: MapLayer[] = [
@@ -89,6 +107,7 @@ const defaultLayers: MapLayer[] = [
   { id: "economic", name: "Economic Indicators", type: "economic", visible: false, opacity: 0.7 },
   { id: "intelligence", name: "Intelligence Reports", type: "intelligence", visible: false, opacity: 0.9 },
   { id: "heatmap", name: "Threat Heatmap", type: "heatmap", visible: false, opacity: 0.5 },
+  { id: "market", name: "Market Intelligence", type: "custom", visible: false, opacity: 0.8 },
 ];
 
 const defaultPanels: DashboardPanel[] = [
@@ -98,6 +117,7 @@ const defaultPanels: DashboardPanel[] = [
   { id: "econ-chart", title: "Economic Indicators", type: "economic_chart", position: { x: 4, y: 3, w: 4, h: 4 }, minimized: true },
   { id: "timeline", title: "Event Timeline", type: "timeline", position: { x: 0, y: 7, w: 8, h: 2 }, minimized: false },
   { id: "correlation", title: "Event Correlations", type: "correlation", position: { x: 8, y: 0, w: 4, h: 4 }, minimized: true },
+  { id: "cross-intel", title: "Cross-Intelligence", type: "correlation", position: { x: 8, y: 4, w: 4, h: 4 }, minimized: true },
 ];
 
 const WATCH_REGIONS: WatchRegion[] = [
@@ -166,6 +186,7 @@ const defaultDataSources: DataSourceStatus[] = [
   { source: "USGS", status: "idle", lastUpdated: null, count: 0 },
   { source: "ReliefWeb", status: "idle", lastUpdated: null, count: 0 },
   { source: "WorldBank", status: "idle", lastUpdated: null, count: 0 },
+  { source: "Market", status: "idle", lastUpdated: null, count: 0 },
 ];
 
 export const useAppStore = create<AppState>((set) => ({
@@ -235,4 +256,18 @@ export const useAppStore = create<AppState>((set) => ({
   setHighlightedEntityId: (id) => set({ highlightedEntityId: id }),
   minSeverity: "low",
   setMinSeverity: (severity) => set({ minSeverity: severity }),
+  // Market & Cross-Intelligence
+  marketData: [],
+  setMarketData: (data) => set({ marketData: data }),
+  marketAnomalies: [],
+  setMarketAnomalies: (anomalies) => set({ marketAnomalies: anomalies }),
+  crossIntelAlerts: [],
+  setCrossIntelAlerts: (alerts) => set({ crossIntelAlerts: alerts }),
+  satSurveillancePatterns: [],
+  setSatSurveillancePatterns: (patterns) => set({ satSurveillancePatterns: patterns }),
+  militaryAircraftPatterns: [],
+  setMilitaryAircraftPatterns: (patterns) => set({ militaryAircraftPatterns: patterns }),
+  llmAnalysisResults: [],
+  addLlmAnalysisResult: (result) =>
+    set((s) => ({ llmAnalysisResults: [result, ...s.llmAnalysisResults].slice(0, 50) })),
 }));
