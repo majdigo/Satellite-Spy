@@ -7,6 +7,9 @@ import type {
   IntelligenceReport,
   IntelligenceCategory,
   SeverityLevel,
+  CrossIntelligenceAlert,
+  MarketAnomaly,
+  SatelliteSurveillancePattern,
 } from "@/types";
 
 interface IntelInput {
@@ -15,6 +18,9 @@ interface IntelInput {
   disasters: NaturalDisaster[];
   economicData: EconomicIndicator[];
   correlations: EventCorrelation[];
+  crossIntelAlerts?: CrossIntelligenceAlert[];
+  marketAnomalies?: MarketAnomaly[];
+  satSurveillancePatterns?: SatelliteSurveillancePattern[];
 }
 
 export function generateIntelReports(input: IntelInput): IntelligenceReport[] {
@@ -152,6 +158,70 @@ export function generateIntelReports(input: IntelInput): IntelligenceReport[] {
       sources: [cc.source],
       tags: [cc.eventType, cc.country.toLowerCase()],
     });
+  }
+
+  // 6. Cross-Intelligence Market Reports — from cross-intel engine
+  if (input.crossIntelAlerts && input.crossIntelAlerts.length > 0) {
+    for (const alert of input.crossIntelAlerts) {
+      if (alert.suspicionLevel === "none" || alert.suspicionLevel === "low") continue;
+
+      const category: IntelligenceCategory =
+        alert.category === "military_buildup" || alert.category === "surveillance_escalation"
+          ? "military_movement"
+          : alert.category === "insider_trading_suspicion" || alert.category === "market_manipulation"
+          ? "economic_crisis"
+          : "infrastructure";
+
+      reports.push({
+        id: `intel-xint-${alert.id}`,
+        title: `CROSS-INTEL: ${alert.title}`,
+        summary: alert.narrative,
+        category,
+        severity: alert.severity,
+        confidence: alert.confidence,
+        timestamp: new Date(),
+        location: { latitude: 0, longitude: 0 },
+        country: alert.countries[0] || "",
+        relatedEvents: alert.signals.filter((s) => s.dataPointId).map((s) => s.dataPointId!),
+        indicators: [
+          `Suspicion: ${alert.suspicionLevel}`,
+          ...alert.signals.slice(0, 3).map((s) => `[${s.source.toUpperCase()}] ${s.description}`),
+          ...(alert.marketImpact
+            ? [`Market: ${alert.marketImpact.direction} ${alert.marketImpact.magnitude} — ${alert.marketImpact.symbols.join(", ")}`]
+            : []),
+        ],
+        sources: [...new Set(alert.signals.map((s) => s.source))],
+        tags: ["cross-intel", alert.category, alert.suspicionLevel, ...alert.countries.map((c) => c.toLowerCase())],
+      });
+    }
+  }
+
+  // 7. Satellite Surveillance Reports
+  if (input.satSurveillancePatterns && input.satSurveillancePatterns.length > 0) {
+    for (const pattern of input.satSurveillancePatterns) {
+      if (pattern.anomalyScore < 50) continue;
+
+      reports.push({
+        id: `intel-surv-${pattern.id}`,
+        title: `Satellite Surveillance: ${pattern.targetRegion}`,
+        summary: pattern.description,
+        category: "military_movement",
+        severity: pattern.anomalyScore > 70 ? "high" : "medium",
+        confidence: Math.min(85, pattern.anomalyScore),
+        timestamp: new Date(),
+        location: { latitude: pattern.targetCoordinates.lat, longitude: pattern.targetCoordinates.lon },
+        country: pattern.ownerCountries[0] || "",
+        relatedEvents: pattern.relatedConflictIds || [],
+        indicators: [
+          `Phase: ${pattern.phase.replace(/_/g, " ")}`,
+          `Pattern: ${pattern.patternType.replace(/_/g, " ")}`,
+          `Anomaly score: ${pattern.anomalyScore}`,
+          `Satellites: ${pattern.satelliteNames.join(", ")}`,
+        ],
+        sources: ["CelesTrak", "Satellite Intelligence"],
+        tags: ["surveillance", "satellite", pattern.phase, ...pattern.ownerCountries.map((c) => c.toLowerCase())],
+      });
+    }
   }
 
   // Sort by severity then timestamp

@@ -10,6 +10,8 @@ import {
   detectMarketAnomalies,
   detectSatelliteSurveillancePatterns,
   detectMilitaryAircraftPatterns,
+  recordMarketSnapshot,
+  detectTemporalAnomalies,
 } from "@/lib/api/cross-intelligence";
 import type { TLEData, SatellitePosition, Alert, ConflictEvent } from "@/types";
 
@@ -276,16 +278,12 @@ export function useDataFetcher() {
     });
     setCorrelations(correlations);
 
-    const reports = generateIntelReports({
-      gdeltEvents: state.gdeltEvents,
-      conflicts: state.conflicts,
-      disasters: state.disasters,
-      economicData: state.economicData,
-      correlations,
-    });
-    setIntelReports(reports);
+    // Record market snapshot for temporal analysis
+    if (state.marketData.length > 0) {
+      recordMarketSnapshot(state.marketData);
+    }
 
-    // Cross-intelligence analysis
+    // Cross-intelligence analysis (run before intel reports so they can be included)
     if (state.marketData.length > 0 || state.satellites.length > 0) {
       const marketAnomalies = detectMarketAnomalies(
         state.marketData, state.conflicts, state.gdeltEvents
@@ -326,6 +324,44 @@ export function useDataFetcher() {
           source: "Cross-Intelligence Engine",
         });
       }
+
+      // Temporal analysis — detect market movements BEFORE conflict events
+      const temporalAnomalies = detectTemporalAnomalies(state.marketData, state.conflicts);
+      for (const ta of temporalAnomalies.filter((t) => t.suspicionScore > 60).slice(0, 3)) {
+        addAlert({
+          id: `alert-temporal-${Date.now()}-${ta.symbol}`,
+          type: "threshold_breach",
+          severity: ta.suspicionScore > 80 ? "critical" : "high",
+          title: `PRE-EVENT TRADING: ${ta.name}`,
+          message: ta.description,
+          timestamp: new Date(),
+          acknowledged: false,
+          source: "Temporal Analysis Engine",
+        });
+      }
+
+      // Generate intel reports WITH cross-intel data
+      const reports = generateIntelReports({
+        gdeltEvents: state.gdeltEvents,
+        conflicts: state.conflicts,
+        disasters: state.disasters,
+        economicData: state.economicData,
+        correlations,
+        crossIntelAlerts: crossAlerts,
+        marketAnomalies,
+        satSurveillancePatterns: satPatterns,
+      });
+      setIntelReports(reports);
+    } else {
+      // No market/satellite data — generate basic reports
+      const reports = generateIntelReports({
+        gdeltEvents: state.gdeltEvents,
+        conflicts: state.conflicts,
+        disasters: state.disasters,
+        economicData: state.economicData,
+        correlations,
+      });
+      setIntelReports(reports);
     }
   }, [setCorrelations, setIntelReports, setMarketAnomalies, setCrossIntelAlerts, setSatSurveillancePatterns, setMilitaryAircraftPatterns, addAlert]);
 

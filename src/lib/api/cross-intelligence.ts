@@ -165,6 +165,133 @@ function findRegionsForSymbol(symbol: string): string[] {
 }
 
 // ============================================================================
+// 1b. Temporal Analysis — Market History Buffer
+// Tracks market snapshots over time to detect pre-event movements
+// ============================================================================
+
+interface MarketSnapshot {
+  timestamp: number;
+  data: Map<string, { price: number; volume: number; changePercent: number }>;
+}
+
+// Rolling window of market snapshots (kept in module scope)
+const marketHistory: MarketSnapshot[] = [];
+const MAX_HISTORY = 60; // ~1 hour at 1 snapshot/min
+
+export function recordMarketSnapshot(market: MarketData[]): void {
+  const snapshot: MarketSnapshot = {
+    timestamp: Date.now(),
+    data: new Map(),
+  };
+  for (const m of market) {
+    snapshot.data.set(m.symbol, {
+      price: m.price,
+      volume: m.volume,
+      changePercent: m.changePercent,
+    });
+  }
+  marketHistory.push(snapshot);
+  if (marketHistory.length > MAX_HISTORY) marketHistory.shift();
+}
+
+export interface TemporalAnomaly {
+  symbol: string;
+  name: string;
+  movementStartedMinutesAgo: number;
+  priceChangeOverWindow: number;
+  volumeTrend: "accelerating" | "steady" | "decelerating";
+  conflictLag: number; // minutes between market movement start and conflict event
+  suspicionScore: number; // 0-100
+  description: string;
+}
+
+export function detectTemporalAnomalies(
+  market: MarketData[],
+  conflicts: ConflictEvent[]
+): TemporalAnomaly[] {
+  if (marketHistory.length < 5) return []; // Need at least 5 snapshots
+
+  const anomalies: TemporalAnomaly[] = [];
+  const now = Date.now();
+
+  // Find recent conflicts (last 2 hours)
+  const recentConflicts = conflicts.filter(
+    (c) => new Date(c.date).getTime() > now - 2 * 60 * 60 * 1000
+  );
+  if (recentConflicts.length === 0) return [];
+
+  // For each tracked symbol, check if price was moving BEFORE the conflicts
+  for (const m of market) {
+    const linkedCountries = findRegionsForSymbol(m.symbol);
+    const linkedConflicts = recentConflicts.filter(
+      (c) => linkedCountries.includes(c.country)
+    );
+    if (linkedConflicts.length === 0) continue;
+
+    // Find the earliest recent conflict time
+    const earliestConflict = Math.min(
+      ...linkedConflicts.map((c) => new Date(c.date).getTime())
+    );
+
+    // Check market history for movement BEFORE the conflict
+    const preConflictSnapshots = marketHistory.filter(
+      (s) => s.timestamp < earliestConflict
+    );
+    if (preConflictSnapshots.length < 3) continue;
+
+    // Calculate price trend in pre-conflict window
+    const firstSnapshot = preConflictSnapshots[0].data.get(m.symbol);
+    const lastPreConflict = preConflictSnapshots[preConflictSnapshots.length - 1].data.get(m.symbol);
+
+    if (!firstSnapshot || !lastPreConflict) continue;
+
+    const priceChange = ((lastPreConflict.price - firstSnapshot.price) / firstSnapshot.price) * 100;
+    const minutesBeforeConflict = (earliestConflict - preConflictSnapshots[0].timestamp) / 60000;
+
+    // Check volume acceleration
+    const midpoint = Math.floor(preConflictSnapshots.length / 2);
+    const firstHalfVol = preConflictSnapshots.slice(0, midpoint)
+      .reduce((s, snap) => s + (snap.data.get(m.symbol)?.volume || 0), 0) / midpoint;
+    const secondHalfVol = preConflictSnapshots.slice(midpoint)
+      .reduce((s, snap) => s + (snap.data.get(m.symbol)?.volume || 0), 0) / (preConflictSnapshots.length - midpoint);
+
+    let volumeTrend: TemporalAnomaly["volumeTrend"] = "steady";
+    if (secondHalfVol > firstHalfVol * 1.3) volumeTrend = "accelerating";
+    else if (secondHalfVol < firstHalfVol * 0.7) volumeTrend = "decelerating";
+
+    // Only flag if significant pre-conflict movement
+    if (Math.abs(priceChange) < 1.5) continue;
+
+    // Suspicion score: higher if movement started well before conflict + accelerating volume
+    let suspicionScore = Math.min(100,
+      Math.abs(priceChange) * 10 +
+      (volumeTrend === "accelerating" ? 25 : 0) +
+      (minutesBeforeConflict > 30 ? 20 : minutesBeforeConflict > 15 ? 10 : 0)
+    );
+
+    // Energy commodities going up before ME conflict = extra suspicious
+    if (m.category === "energy" && priceChange > 0 && linkedCountries.some(
+      (c) => ["IRN", "IRQ", "SAU", "YEM", "ISR", "RUS"].includes(c)
+    )) {
+      suspicionScore = Math.min(100, suspicionScore + 15);
+    }
+
+    anomalies.push({
+      symbol: m.symbol,
+      name: m.name,
+      movementStartedMinutesAgo: Math.round((now - preConflictSnapshots[0].timestamp) / 60000),
+      priceChangeOverWindow: priceChange,
+      volumeTrend,
+      conflictLag: Math.round(minutesBeforeConflict),
+      suspicionScore,
+      description: `${m.name} moved ${priceChange > 0 ? "+" : ""}${priceChange.toFixed(2)}% starting ~${Math.round(minutesBeforeConflict)}min BEFORE ${linkedConflicts[0].eventType.replace(/_/g, " ")} in ${linkedConflicts[0].country}. Volume: ${volumeTrend}.`,
+    });
+  }
+
+  return anomalies.sort((a, b) => b.suspicionScore - a.suspicionScore);
+}
+
+// ============================================================================
 // 2. Satellite Surveillance Pattern Detection
 // ============================================================================
 
