@@ -5,6 +5,7 @@ import { useDataFetcher } from "@/hooks/useDataFetcher";
 import TopBar from "@/components/dashboard/TopBar";
 import Sidebar from "@/components/dashboard/Sidebar";
 import BottomBar from "@/components/dashboard/BottomBar";
+import CriticalAlertBanner from "@/components/dashboard/CriticalAlertBanner";
 import { useAppStore } from "@/store";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 
@@ -48,6 +49,9 @@ export default function HomePage() {
       </div>
 
       <BottomBar />
+
+      {/* Critical cross-intelligence alert banner */}
+      <CriticalAlertBanner />
 
       {/* Active region banner */}
       {activeRegion && (

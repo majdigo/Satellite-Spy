@@ -14,6 +14,7 @@ import type {
   NaturalDisaster,
   WatchRegion,
 } from "@/types";
+import { matchScenarioPatterns } from "./scenario-patterns";
 
 // ============================================================================
 // Cross-Intelligence Analysis Engine
@@ -533,6 +534,45 @@ export function generateCrossIntelligenceAlerts(
 
   // --- D. Pre-event market movement detection ---
   alerts.push(...detectPreEventMarketMovements(input.market, input.conflicts, input.gdeltEvents));
+
+  // --- E. Scenario Pattern Matching ---
+  const scenarioMatches = matchScenarioPatterns({
+    market: input.market,
+    conflicts: input.conflicts,
+    gdeltEvents: input.gdeltEvents,
+    satellites: input.satellites,
+    aircraft: input.aircraft,
+  });
+
+  for (const match of scenarioMatches) {
+    alerts.push({
+      id: `cross-scenario-${match.pattern.id}-${Date.now()}`,
+      title: `SCENARIO: ${match.pattern.name}`,
+      summary: `${match.pattern.description} — ${match.matchedTriggers}/${match.totalTriggers} triggers active (${match.matchPercentage}% match). ${match.pattern.expectedOutcome}`,
+      category: match.pattern.category === "defense_surge" ? "insider_trading_suspicion"
+        : match.pattern.category === "energy_conflict" ? "resource_warfare"
+        : match.pattern.category === "sanctions" ? "sanctions_evasion"
+        : "conflict_profiteering",
+      severity: match.pattern.severity,
+      confidence: Math.min(95, match.matchPercentage + 10),
+      timestamp: new Date(),
+      signals: match.signals,
+      region: match.pattern.involvedRegions.join(", ") || "Global",
+      countries: match.pattern.involvedRegions,
+      marketImpact: {
+        symbols: match.pattern.affectedSymbols,
+        direction: match.pattern.category === "safe_haven" ? "volatile" : "bullish",
+        magnitude: match.matchPercentage > 80 ? "major" : match.matchPercentage > 60 ? "moderate" : "minor",
+      },
+      suspicionLevel: match.matchPercentage > 80 ? "high" : match.matchPercentage > 60 ? "moderate" : "low",
+      narrative: `SCENARIO MATCH: "${match.pattern.name}" — ${match.matchPercentage}% of indicators triggered.\n\nHistorical precedents:\n${match.pattern.historicalExamples.map((e) => `• ${e}`).join("\n")}\n\nExpected outcome: ${match.pattern.expectedOutcome}`,
+      recommendations: [
+        `Monitor ${match.pattern.affectedSymbols.join(", ")} for continued movement`,
+        ...match.pattern.involvedRegions.map((r) => `Watch ${r} region for escalation`),
+        `Review historical precedent: ${match.pattern.historicalExamples[0]}`,
+      ],
+    });
+  }
 
   // Sort by severity then suspicion
   const severityOrder: Record<SeverityLevel, number> = { critical: 4, high: 3, medium: 2, low: 1 };
