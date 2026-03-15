@@ -14,8 +14,10 @@ import IntelligencePanel from "@/components/panels/IntelligencePanel";
 import CrossIntelligencePanel from "@/components/panels/CrossIntelligencePanel";
 import DataStatusPanel from "@/components/panels/DataStatusPanel";
 import ScenarioPanel from "@/components/panels/ScenarioPanel";
+import ActionCenterPanel from "@/components/panels/ActionCenterPanel";
 
 type SidebarTab =
+  | "actions"
   | "alerts"
   | "regions"
   | "layers"
@@ -30,6 +32,7 @@ type SidebarTab =
   | "status";
 
 const TABS: { id: SidebarTab; label: string; icon: string }[] = [
+  { id: "actions", label: "ACTION", icon: "▶" },
   { id: "alerts", label: "ALERTS", icon: "!" },
   { id: "regions", label: "REGIONS", icon: "O" },
   { id: "layers", label: "LAYERS", icon: "#" },
@@ -46,7 +49,7 @@ const TABS: { id: SidebarTab; label: string; icon: string }[] = [
 
 export default function Sidebar() {
   const { sidebarOpen, toggleSidebar, alerts } = useAppStore();
-  const [activeTab, setActiveTab] = useState<SidebarTab>("events");
+  const [activeTab, setActiveTab] = useState<SidebarTab>("actions");
 
   const unackedAlerts = alerts.filter((a) => !a.acknowledged).length;
 
@@ -102,6 +105,7 @@ export default function Sidebar() {
             </button>
           </div>
 
+          {activeTab === "actions" && <ActionCenterPanel />}
           {activeTab === "alerts" && <AlertsPanel />}
           {activeTab === "regions" && <WatchRegionsPanel />}
           {activeTab === "layers" && <LayerControl />}
