@@ -2,6 +2,8 @@
 
 import { useAppStore } from "@/store";
 import { severityBgClass, getTimeAgo } from "@/lib/utils/helpers";
+import { useState, useCallback } from "react";
+import { matchScenarioPatterns } from "@/lib/api/scenario-patterns";
 
 const CATEGORY_ICONS: Record<string, string> = {
   military_movement: "⚔",
@@ -14,7 +16,61 @@ const CATEGORY_ICONS: Record<string, string> = {
 };
 
 export default function IntelligencePanel() {
-  const { intelReports, setFocusLocation } = useAppStore();
+  const {
+    intelReports, setFocusLocation,
+    crossIntelAlerts, marketAnomalies, conflicts, marketData,
+    satellites, aircraft, gdeltEvents,
+  } = useAppStore();
+  const [exporting, setExporting] = useState(false);
+
+  const exportReport = useCallback(async () => {
+    setExporting(true);
+    try {
+      const scenarioMatches = matchScenarioPatterns({
+        market: marketData,
+        conflicts,
+        gdeltEvents,
+        satellites,
+        aircraft,
+      });
+
+      const resp = await fetch("/api/report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          crossIntelAlerts: crossIntelAlerts.slice(0, 30),
+          marketAnomalies: marketAnomalies.slice(0, 20),
+          conflicts: conflicts.slice(0, 20),
+          marketData,
+          scenarioMatches: scenarioMatches.map((m) => ({
+            name: m.pattern.name,
+            matchPercentage: m.matchPercentage,
+            severity: m.pattern.severity,
+            category: m.pattern.category,
+            expectedOutcome: m.pattern.expectedOutcome,
+            historicalExamples: m.pattern.historicalExamples,
+            affectedSymbols: m.pattern.affectedSymbols,
+          })),
+          generatedAt: new Date().toISOString(),
+        }),
+      });
+
+      const data = await resp.json();
+      if (data.report) {
+        const blob = new Blob([data.report], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `satellite-spy-brief-${new Date().toISOString().substring(0, 10)}.txt`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch (err) {
+      console.error("Export failed:", err);
+    } finally {
+      setExporting(false);
+    }
+  }, [crossIntelAlerts, marketAnomalies, conflicts, marketData, satellites, aircraft, gdeltEvents]);
 
   return (
     <div className="space-y-2">
@@ -22,9 +78,13 @@ export default function IntelligencePanel() {
         <div className="text-[10px] font-mono text-gray-600 uppercase tracking-wider">
           Intelligence Reports ({intelReports.length})
         </div>
-        <div className="text-[8px] font-mono text-gray-700">
-          AUTO-GENERATED
-        </div>
+        <button
+          onClick={exportReport}
+          disabled={exporting}
+          className="text-[8px] font-mono text-military-green border border-military-green/30 px-2 py-0.5 hover:bg-military-green/10 transition-colors disabled:opacity-50"
+        >
+          {exporting ? "EXPORTING..." : "EXPORT BRIEF"}
+        </button>
       </div>
 
       {intelReports.length === 0 ? (
