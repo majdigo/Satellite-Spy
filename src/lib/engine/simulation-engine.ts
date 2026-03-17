@@ -144,6 +144,23 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
       parameters: { escalationType: "strategic", natolnvolvement: "indirect" },
     },
   },
+  {
+    id: "sim-logistics-disruption",
+    name: "Persian Gulf Supply Chain Disruption",
+    description: "Major logistics disruption on Hormuz→Rotterdam oil route — fleet rerouting, warehouse capacity stressed, port congestion cascade",
+    trigger: {
+      type: "chokepoint_closure",
+      targetEntityId: "route-hormuz-rotterdam",
+      severity: "high",
+      parameters: {
+        affectedRoute: "Hormuz→Suez→Rotterdam",
+        rerouteViaCape: true,
+        additionalTransitDays: 14,
+        affectedCommodity: "oil",
+        impactedPorts: ["port-rotterdam", "port-jebel-ali"],
+      },
+    },
+  },
 ];
 
 // ============================================================================

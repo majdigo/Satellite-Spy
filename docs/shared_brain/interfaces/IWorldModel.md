@@ -1,14 +1,14 @@
 # IWorldModel — Interface du World Model Satellite-Spy
 
-**Source** : `src/lib/engine/world-model.ts` (442 LOC)  
+**Source** : `src/lib/engine/world-model.ts` (573 LOC)  
 **Pattern** : Graphe dirigé pondéré (entités + relations + chaînes causales)
 
 ---
 
-## EntityType (13 types)
+## EntityType (17 = 13 geopolitical + 4 logistics)
 
 ```typescript
-// world-model.ts L26-39
+// world-model.ts L26-43
 type EntityType =
   | "country"          // État souverain
   | "region"           // Zone géographique
@@ -23,12 +23,17 @@ type EntityType =
   | "aircraft"         // Aéronef
   | "infrastructure"   // Pipeline, câble, route
   | "population"       // Population civile
+  // Logistics (Masar AI / supply chain)
+  | "fleet"            // Flotte maritime ou aérienne
+  | "warehouse"        // Entrepôt ou centre de distribution
+  | "shipment"         // Marchandises en transit
+  | "route"            // Route commerciale définie
 ```
 
-## RelationType (11 types)
+## RelationType (14 = 11 geopolitical + 3 logistics)
 
 ```typescript
-// world-model.ts L69-80
+// world-model.ts L69-86
 type RelationType =
   | "depends_on"       // A dépend de B (supply chain)
   | "transports"       // A transporte via B (chokepoint)
@@ -41,12 +46,16 @@ type RelationType =
   | "allied_with"      // A est allié de B
   | "hostile_to"       // A est hostile à B
   | "impacts"          // A impacte B (cascade)
+  // Logistics relations
+  | "stores_at"        // A stocke des biens chez B (warehouse)
+  | "ships_via"        // A expédie via B (route/chokepoint)
+  | "delivers_to"      // A livre à B (destination)
 ```
 
 ## WorldEntity
 
 ```typescript
-// world-model.ts L41-55
+// world-model.ts L45-59
 interface WorldEntity {
   id: string;
   type: EntityType;
@@ -64,7 +73,7 @@ interface WorldEntity {
 ## WorldRelation
 
 ```typescript
-// world-model.ts L82-90
+// world-model.ts L88-96
 interface WorldRelation {
   id: string;
   type: RelationType;
@@ -79,7 +88,7 @@ interface WorldRelation {
 ## CausalChain
 
 ```typescript
-// world-model.ts L96-113
+// world-model.ts L102-119
 interface CausalChain {
   id: string;
   trigger: string;
@@ -100,6 +109,16 @@ interface CausalStep {
 }
 ```
 
+## Demo Logistics Entities (5)
+
+| ID | Type | Name | Location |
+|----|------|------|----------|
+| `port-rotterdam` | port | Port of Rotterdam | 51.95°N 4.13°E |
+| `port-jebel-ali` | port | Jebel Ali Port (Dubai) | 25.0°N 55.06°E |
+| `warehouse-rotterdam-tank` | warehouse | Rotterdam Oil Tank Farm | 51.89°N 4.29°E |
+| `fleet-maersk-gulf` | fleet | Maersk Gulf Fleet | 25.3°N 55.5°E |
+| `route-hormuz-rotterdam` | route | Hormuz→Suez→Rotterdam Oil Route | 5 waypoints, 6500nm |
+
 ## Correspondance ontologie L2
 
 | WorldModel | Ontologie L2 (Masar pattern) |
@@ -110,3 +129,4 @@ interface CausalStep {
 | `WorldRelation.strength` | Poids de confiance |
 | `CausalChain` | Rule chain (→ DefeasibleReasoner) |
 | `status` (4 états) | `NormDomain` implicite |
+| `fleet/warehouse/route` | Logistics extension (Masar AI) |

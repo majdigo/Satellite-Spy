@@ -25,8 +25,8 @@ function buildTestWorldModel() {
 
 describe("Simulation Export API", () => {
   describe("scenario listing", () => {
-    it("should have 6 pre-built scenarios", () => {
-      expect(SIMULATION_SCENARIOS).toHaveLength(6);
+    it("should have 7 pre-built scenarios", () => {
+      expect(SIMULATION_SCENARIOS).toHaveLength(7);
     });
 
     it("should have all required scenario IDs", () => {
