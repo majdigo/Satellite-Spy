@@ -1,0 +1,209 @@
+# Satellite-Spy Geopolitics Ontology
+# Source: src/lib/engine/world-model.ts L26-80
+# Source: src/lib/engine/simulation-engine.ts L80-145
+
+domain: geopolitics
+version: "1.0.0"
+project: satellite-spy
+language: typescript
+
+# =============================================================================
+# Entity Types (13)
+# =============================================================================
+entity_types:
+  - id: country
+    description: "Sovereign state"
+    examples: ["IRN", "USA", "CHN", "RUS", "UKR"]
+
+  - id: region
+    description: "Geographic zone"
+    examples: ["Middle East", "Sahel", "South China Sea"]
+
+  - id: city
+    description: "City"
+    examples: ["Tehran", "Kyiv", "Taipei"]
+
+  - id: military_base
+    description: "Military installation"
+    examples: ["Al Udeid", "Incirlik", "Diego Garcia"]
+
+  - id: port
+    description: "Maritime port"
+    examples: ["Fujairah", "Rotterdam", "Shanghai"]
+
+  - id: chokepoint
+    description: "Maritime/land chokepoint controlling transit"
+    examples: ["Strait of Hormuz", "Suez Canal", "Malacca Strait"]
+
+  - id: commodity
+    description: "Raw material or traded good"
+    examples: ["Crude Oil (WTI)", "Natural Gas", "Wheat", "Gold"]
+
+  - id: market
+    description: "Financial market or index"
+    examples: ["S&P 500", "VIX", "US Dollar Index"]
+
+  - id: actor
+    description: "Armed group, government, or corporation"
+    examples: ["IRGC", "Houthi", "Lockheed Martin", "Wagner Group"]
+
+  - id: satellite
+    description: "Orbital satellite"
+    examples: ["USA-326 (KH-11)", "NROL-82", "Yaogan-35"]
+
+  - id: aircraft
+    description: "Military or civilian aircraft"
+    examples: ["AWACS E-3", "B-52", "C-17 Globemaster"]
+
+  - id: infrastructure
+    description: "Pipeline, cable, or critical infrastructure"
+    examples: ["Nord Stream", "TAPI Pipeline", "Sumed Pipeline"]
+
+  - id: population
+    description: "Civilian population"
+    examples: ["Iranian civilians", "Ukrainian refugees"]
+
+# =============================================================================
+# Relation Types (11)
+# =============================================================================
+relation_types:
+  - id: depends_on
+    description: "A depends on B (supply chain)"
+    directionality: directed
+
+  - id: transports
+    description: "A transports goods through B (chokepoint)"
+    directionality: directed
+
+  - id: threatens
+    description: "A threatens B (conflict)"
+    directionality: directed
+
+  - id: monitors
+    description: "A monitors/surveils B"
+    directionality: directed
+
+  - id: trades
+    description: "A trades commodity B"
+    directionality: directed
+
+  - id: borders
+    description: "A borders B (geography)"
+    directionality: undirected
+
+  - id: supplies
+    description: "A supplies B"
+    directionality: directed
+
+  - id: controls
+    description: "A controls B"
+    directionality: directed
+
+  - id: allied_with
+    description: "A is allied with B"
+    directionality: undirected
+
+  - id: hostile_to
+    description: "A is hostile to B"
+    directionality: undirected
+
+  - id: impacts
+    description: "A impacts B (cascade effect)"
+    directionality: directed
+
+# =============================================================================
+# Entity Status States (4)
+# =============================================================================
+entity_statuses:
+  - normal
+  - stressed
+  - disrupted
+  - critical
+
+# =============================================================================
+# Simulation Scenarios (6)
+# Source: src/lib/engine/simulation-engine.ts L80-145
+# =============================================================================
+simulation_scenarios:
+  - id: sim-hormuz-closure
+    name: "Strait of Hormuz Closure"
+    trigger_type: chokepoint_closure
+    target: chokepoint-hormuz
+    severity: critical
+    market_impact: "Oil +15-40%, Gold +5-10%, Defense +5-15%"
+
+  - id: sim-taiwan-invasion
+    name: "Taiwan Strait Military Action"
+    trigger_type: conflict_start
+    target: country-TWN
+    severity: critical
+    market_impact: "S&P -10-25%, VIX +50-200%, Semiconductors -20-40%"
+
+  - id: sim-suez-blockage
+    name: "Suez Canal Blockage"
+    trigger_type: chokepoint_closure
+    target: chokepoint-suez
+    severity: high
+    market_impact: "Oil +5-15%, Shipping +20-50%"
+
+  - id: sim-russia-gas-cutoff
+    name: "Russia Gas Supply Cutoff"
+    trigger_type: commodity_shock
+    target: commodity-natural-gas
+    severity: critical
+    market_impact: "Gas +50-200%, EUR -5-10%"
+
+  - id: sim-iran-sanctions
+    name: "Maximum Pressure Iran Sanctions"
+    trigger_type: sanctions
+    target: country-IRN
+    severity: high
+    market_impact: "Oil +5-20%, IRR -20-50%"
+
+  - id: sim-ukraine-escalation
+    name: "Ukraine Major Escalation"
+    trigger_type: conflict_start
+    target: country-UKR
+    severity: critical
+    market_impact: "Wheat +20-60%, Gas +30-80%, RUB -10-30%"
+
+# =============================================================================
+# Scenario Pattern Library (6 additional)
+# Source: src/lib/api/scenario-patterns.ts L64-394
+# =============================================================================
+scenario_patterns:
+  - id: hormuz-crisis
+    name: "Strait of Hormuz Disruption"
+    category: energy_conflict
+    min_triggers: 3
+    affected_symbols: [CL=F, BZ=F, NG=F, GC=F, LMT, RTX, NOC]
+
+  - id: ukraine-grain-crisis
+    name: "Black Sea Grain Corridor Disruption"
+    category: food_crisis
+    min_triggers: 3
+    affected_symbols: [ZW=F, ZC=F, ZS=F, USDRUB=X, NG=F]
+
+  - id: taiwan-strait-crisis
+    name: "Taiwan Strait Military Escalation"
+    category: supply_chain
+    min_triggers: 3
+    affected_symbols: ["^GSPC", "^VIX", USDCNY=X, GC=F, LMT, RTX]
+
+  - id: defense-insider-pattern
+    name: "Defense Sector Pre-Conflict Positioning"
+    category: defense_surge
+    min_triggers: 3
+    affected_symbols: [LMT, RTX, NOC, GD, BA, LHX]
+
+  - id: sanctions-escalation
+    name: "Sanctions-Related Currency/Commodity Crisis"
+    category: sanctions
+    min_triggers: 2
+    affected_symbols: [USDRUB=X, USDIRR=X, USDTRY=X, CL=F, GC=F, ZW=F]
+
+  - id: safe-haven-rush
+    name: "Global Safe-Haven Rush"
+    category: safe_haven
+    min_triggers: 3
+    affected_symbols: [GC=F, "^VIX", "^GSPC", DX-Y.NYB, SI=F]

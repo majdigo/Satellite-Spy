@@ -1,0 +1,24 @@
+{
+  "name": "@madgic/satellite-platform",
+  "version": "1.0.0",
+  "description": "Madgic Satellite Platform — Spatial Intelligence SDK (WorldModel, SimulationEngine, DecisionEngine, AI Plugin System)",
+  "main": "index.ts",
+  "exports": {
+    "./world-model": "../lib/engine/world-model.ts",
+    "./simulation": "../lib/engine/simulation-engine.ts",
+    "./decision": "../lib/engine/decision-engine.ts",
+    "./ai-plugins": "../lib/ai/plugin-system.ts",
+    "./cross-intelligence": "../lib/api/cross-intelligence.ts",
+    "./correlation": "../lib/api/correlation.ts"
+  },
+  "keywords": [
+    "madgic",
+    "satellite",
+    "spatial-intelligence",
+    "world-model",
+    "geopolitical",
+    "simulation"
+  ],
+  "author": "Majdi Ghrouel <majdi@madgic.ai>",
+  "license": "UNLICENSED"
+}
