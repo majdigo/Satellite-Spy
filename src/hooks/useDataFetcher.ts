@@ -118,12 +118,14 @@ export function useDataFetcher() {
         lastUpdated: new Date(),
         count: positions.length,
       });
+      eventBus.publish("satellites:updated", { positions, count: positions.length });
     } catch (err) {
       console.error("Failed to fetch satellites:", err);
       updateDataSource("CelesTrak", {
         status: "error",
         error: String(err),
       });
+      eventBus.publish("system:error", { source: "CelesTrak", error: String(err) });
     }
   }, [setSatellites, updateDataSource]);
 
@@ -151,15 +153,18 @@ export function useDataFetcher() {
       const resp = await fetch(url);
       if (!resp.ok) return;
       const data = await resp.json();
-      setAircraft(data.aircraft || []);
+      const aircraftItems = data.aircraft || [];
+      setAircraft(aircraftItems);
       updateDataSource("OpenSky", {
         status: "success",
         lastUpdated: new Date(),
-        count: data.aircraft?.length || 0,
+        count: aircraftItems.length,
       });
+      eventBus.publish("aircraft:updated", { aircraft: aircraftItems, count: aircraftItems.length });
     } catch (err) {
       console.error("Failed to fetch aircraft:", err);
       updateDataSource("OpenSky", { status: "error", error: String(err) });
+      eventBus.publish("system:error", { source: "OpenSky", error: String(err) });
     }
   }, [setAircraft, updateDataSource, activeRegion]);
 
@@ -176,15 +181,18 @@ export function useDataFetcher() {
       );
       if (!resp.ok) return;
       const data = await resp.json();
-      setGdeltEvents(data.events || []);
+      const gdeltItems = data.events || [];
+      setGdeltEvents(gdeltItems);
       updateDataSource("GDELT", {
         status: "success",
         lastUpdated: new Date(),
-        count: data.events?.length || 0,
+        count: gdeltItems.length,
       });
+      eventBus.publish("gdelt:updated", { events: gdeltItems, count: gdeltItems.length });
     } catch (err) {
       console.error("Failed to fetch GDELT:", err);
       updateDataSource("GDELT", { status: "error", error: String(err) });
+      eventBus.publish("system:error", { source: "GDELT", error: String(err) });
     }
   }, [setGdeltEvents, updateDataSource, activeRegion]);
 
@@ -206,9 +214,11 @@ export function useDataFetcher() {
         lastUpdated: new Date(),
         count: newConflicts.length,
       });
+      eventBus.publish("conflicts:updated", { conflicts: newConflicts, count: newConflicts.length });
     } catch (err) {
       console.error("Failed to fetch conflicts:", err);
       updateDataSource("ACLED", { status: "error", error: String(err) });
+      eventBus.publish("system:error", { source: "ACLED", error: String(err) });
     }
   }, [setConflicts, updateDataSource, activeRegion, checkAlerts]);
 
@@ -218,15 +228,18 @@ export function useDataFetcher() {
       const resp = await fetch("/api/disasters");
       if (!resp.ok) return;
       const data = await resp.json();
-      setDisasters(data.disasters || []);
+      const disasterItems = data.disasters || [];
+      setDisasters(disasterItems);
       updateDataSource("USGS", {
         status: "success",
         lastUpdated: new Date(),
-        count: data.disasters?.length || 0,
+        count: disasterItems.length,
       });
+      eventBus.publish("disasters:updated", { disasters: disasterItems, count: disasterItems.length });
     } catch (err) {
       console.error("Failed to fetch disasters:", err);
       updateDataSource("USGS", { status: "error", error: String(err) });
+      eventBus.publish("system:error", { source: "USGS", error: String(err) });
     }
   }, [setDisasters, updateDataSource]);
 
@@ -236,15 +249,18 @@ export function useDataFetcher() {
       const resp = await fetch("/api/economic");
       if (!resp.ok) return;
       const data = await resp.json();
-      setEconomicData(data.indicators || []);
+      const indicatorItems = data.indicators || [];
+      setEconomicData(indicatorItems);
       updateDataSource("WorldBank", {
         status: "success",
         lastUpdated: new Date(),
-        count: data.indicators?.length || 0,
+        count: indicatorItems.length,
       });
+      eventBus.publish("economic:updated", { indicators: indicatorItems, count: indicatorItems.length });
     } catch (err) {
       console.error("Failed to fetch economic data:", err);
       updateDataSource("WorldBank", { status: "error", error: String(err) });
+      eventBus.publish("system:error", { source: "WorldBank", error: String(err) });
     }
   }, [setEconomicData, updateDataSource]);
 
@@ -319,6 +335,10 @@ export function useDataFetcher() {
         watchRegions: state.watchRegions,
       });
       setCrossIntelAlerts(crossAlerts);
+
+      // Publish analysis results via EventBus
+      eventBus.publish("analysis:crossintel", { alerts: crossAlerts });
+      eventBus.publish("analysis:anomalies", { anomalies: marketAnomalies });
 
       // Generate alerts for critical cross-intel findings
       for (const alert of crossAlerts.filter((a) => a.severity === "critical").slice(0, 2)) {
