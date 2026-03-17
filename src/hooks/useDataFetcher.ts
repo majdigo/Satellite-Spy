@@ -13,6 +13,7 @@ import {
   recordMarketSnapshot,
   detectTemporalAnomalies,
 } from "@/lib/api/cross-intelligence";
+import { eventBus } from "@/lib/event-bus";
 import type { TLEData, SatellitePosition, Alert, ConflictEvent } from "@/types";
 
 export function useDataFetcher() {
@@ -253,15 +254,23 @@ export function useDataFetcher() {
       const resp = await fetch("/api/market");
       if (!resp.ok) return;
       const data = await resp.json();
-      setMarketData(data.market || []);
+      const marketItems = data.market || [];
+      setMarketData(marketItems);
       updateDataSource("Market", {
         status: "success",
         lastUpdated: new Date(),
-        count: data.market?.length || 0,
+        count: marketItems.length,
+      });
+      // Publish via EventBus for cross-project consumption
+      eventBus.publish("market:updated", {
+        market: marketItems,
+        count: marketItems.length,
+        timestamp: data.timestamp || new Date().toISOString(),
       });
     } catch (err) {
       console.error("Failed to fetch market data:", err);
       updateDataSource("Market", { status: "error", error: String(err) });
+      eventBus.publish("system:error", { source: "Market", error: String(err) });
     }
   }, [setMarketData, updateDataSource]);
 
