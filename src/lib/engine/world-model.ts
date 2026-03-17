@@ -36,7 +36,12 @@ export type EntityType =
   | "satellite"
   | "aircraft"
   | "infrastructure"
-  | "population";
+  | "population"
+  // Logistics (added for Masar AI / supply chain)
+  | "fleet"         // maritime/air fleet
+  | "warehouse"     // storage/distribution center
+  | "shipment"      // goods in transit
+  | "route";        // defined trade/transport route
 
 export interface WorldEntity {
   id: string;
@@ -77,7 +82,11 @@ export type RelationType =
   | "controls"         // A controls B
   | "allied_with"      // A is allied with B
   | "hostile_to"       // A is hostile to B
-  | "impacts";         // A impacts B (cascade)
+  | "impacts"          // A impacts B (cascade)
+  // Logistics relations (added for Masar AI / supply chain)
+  | "stores_at"        // A stores goods at B (warehouse)
+  | "ships_via"        // A ships goods via B (route/chokepoint)
+  | "delivers_to";     // A delivers to B (destination)
 
 export interface WorldRelation {
   id: string;
@@ -238,6 +247,73 @@ const STRATEGIC_RELATIONS: Omit<WorldRelation, "id">[] = [
   { type: "allied_with", sourceId: "country-USA", targetId: "country-ISR", strength: 0.9, properties: { type: "strategic_alliance" }, active: true },
 ];
 
+// Logistics demo entities — connecting ports, warehouses, and routes
+const LOGISTICS_ENTITIES: Omit<WorldEntity, "metrics" | "status" | "lastUpdated">[] = [
+  {
+    id: "port-rotterdam",
+    type: "port",
+    name: "Port of Rotterdam",
+    location: { lat: 51.95, lon: 4.13 },
+    country: "NLD",
+    properties: { throughputTEU: 14500000, rank: 1, region: "Europe" },
+  },
+  {
+    id: "port-jebel-ali",
+    type: "port",
+    name: "Jebel Ali Port (Dubai)",
+    location: { lat: 25.0, lon: 55.06 },
+    country: "ARE",
+    properties: { throughputTEU: 13700000, rank: 3, region: "Middle East" },
+  },
+  {
+    id: "warehouse-rotterdam-tank",
+    type: "warehouse",
+    name: "Rotterdam Oil Tank Farm",
+    location: { lat: 51.89, lon: 4.29 },
+    country: "NLD",
+    properties: { capacityMbarrels: 60, commodities: ["oil", "lng"], type: "tank_farm" },
+  },
+  {
+    id: "fleet-maersk-gulf",
+    type: "fleet",
+    name: "Maersk Gulf Fleet",
+    location: { lat: 25.3, lon: 55.5 },
+    properties: { vessels: 45, type: "container", operator: "Maersk", region: "Persian Gulf" },
+  },
+  {
+    id: "route-hormuz-rotterdam",
+    type: "route",
+    name: "Hormuz → Suez → Rotterdam Oil Route",
+    properties: {
+      waypoints: [
+        { name: "Strait of Hormuz", lat: 26.5, lon: 56.3 },
+        { name: "Bab el-Mandeb", lat: 12.5, lon: 43.3 },
+        { name: "Suez Canal", lat: 30.5, lon: 32.3 },
+        { name: "Gibraltar", lat: 36.1, lon: -5.35 },
+        { name: "Rotterdam", lat: 51.95, lon: 4.13 },
+      ],
+      commodity: "oil",
+      distanceNm: 6500,
+      transitDays: 21,
+      chokepoints: ["chokepoint-hormuz", "chokepoint-bab-el-mandeb", "chokepoint-suez"],
+    },
+  },
+];
+
+const LOGISTICS_RELATIONS: Omit<WorldRelation, "id">[] = [
+  // Rotterdam warehouse stores oil arriving via Hormuz route
+  { type: "stores_at", sourceId: "commodity-oil", targetId: "warehouse-rotterdam-tank", strength: 0.7, properties: { capacityUtilization: 0.75 }, active: true },
+  // The route ships via 3 chokepoints
+  { type: "ships_via", sourceId: "route-hormuz-rotterdam", targetId: "chokepoint-hormuz", strength: 0.95, properties: { segment: 1 }, active: true },
+  { type: "ships_via", sourceId: "route-hormuz-rotterdam", targetId: "chokepoint-suez", strength: 0.9, properties: { segment: 3 }, active: true },
+  // Fleet operates from Jebel Ali and delivers to Rotterdam
+  { type: "delivers_to", sourceId: "fleet-maersk-gulf", targetId: "port-rotterdam", strength: 0.7, properties: { frequency: "weekly" }, active: true },
+  // Jebel Ali port depends on Hormuz
+  { type: "depends_on", sourceId: "port-jebel-ali", targetId: "chokepoint-hormuz", strength: 0.9, properties: { reason: "sole access" }, active: true },
+  // Route impacts commodity price if disrupted
+  { type: "impacts", sourceId: "route-hormuz-rotterdam", targetId: "commodity-oil", strength: 0.8, properties: { mechanism: "supply disruption" }, active: true },
+];
+
 // ============================================================================
 // World Model Builder — assembles the graph from live data
 // ============================================================================
@@ -341,6 +417,16 @@ export function buildWorldModel(input: WorldModelInput): WorldModel {
     });
   }
 
+  // --- 1b. Load logistics demo entities ---
+  for (const logEntity of LOGISTICS_ENTITIES) {
+    entities.set(logEntity.id, {
+      ...logEntity,
+      status: "normal",
+      metrics: [],
+      lastUpdated: now,
+    });
+  }
+
   // --- 2. Update chokepoint status based on nearby conflicts/events ---
   for (const [id, entity] of entities) {
     if (entity.type !== "chokepoint" || !entity.location) continue;
@@ -372,10 +458,16 @@ export function buildWorldModel(input: WorldModelInput): WorldModel {
   }
 
   // --- 3. Build relations from static + dynamic data ---
-  const relations: WorldRelation[] = STRATEGIC_RELATIONS.map((r, i) => ({
-    ...r,
-    id: `rel-static-${i}`,
-  }));
+  const relations: WorldRelation[] = [
+    ...STRATEGIC_RELATIONS.map((r, i) => ({
+      ...r,
+      id: `rel-static-${i}`,
+    })),
+    ...LOGISTICS_RELATIONS.map((r, i) => ({
+      ...r,
+      id: `rel-logistics-${i}`,
+    })),
+  ];
 
   // Dynamic: satellites monitoring regions
   for (const sat of input.satellites.filter((s) => s.category === "reconnaissance" || s.category === "military")) {
