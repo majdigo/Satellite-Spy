@@ -8,7 +8,7 @@ project: satellite-spy
 language: typescript
 
 # =============================================================================
-# Entity Types (13)
+# Entity Types (17 = 13 geopolitical + 4 logistics)
 # =============================================================================
 entity_types:
   - id: country
@@ -63,8 +63,25 @@ entity_types:
     description: "Civilian population"
     examples: ["Iranian civilians", "Ukrainian refugees"]
 
+  # Logistics (added for Masar AI / supply chain)
+  - id: fleet
+    description: "Maritime or air fleet"
+    examples: ["Maersk Gulf Fleet", "CMA CGM Mediterranean"]
+
+  - id: warehouse
+    description: "Storage or distribution center"
+    examples: ["Rotterdam Oil Tank Farm", "Jebel Ali Free Zone"]
+
+  - id: shipment
+    description: "Goods in transit"
+    examples: ["VLCC tanker en route Hormuz→Rotterdam"]
+
+  - id: route
+    description: "Defined trade or transport route"
+    examples: ["Hormuz→Suez→Rotterdam Oil Route"]
+
 # =============================================================================
-# Relation Types (11)
+# Relation Types (14 = 11 geopolitical + 3 logistics)
 # =============================================================================
 relation_types:
   - id: depends_on
@@ -109,6 +126,19 @@ relation_types:
 
   - id: impacts
     description: "A impacts B (cascade effect)"
+    directionality: directed
+
+  # Logistics relations (added for Masar AI / supply chain)
+  - id: stores_at
+    description: "A stores goods at B (warehouse)"
+    directionality: directed
+
+  - id: ships_via
+    description: "A ships goods via B (route/chokepoint)"
+    directionality: directed
+
+  - id: delivers_to
+    description: "A delivers to B (destination)"
     directionality: directed
 
 # =============================================================================
