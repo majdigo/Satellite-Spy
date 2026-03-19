@@ -53,7 +53,7 @@ npm run dev
 - **Satellite Math**: satellite.js (SGP4/SDP4 propagation)
 - **State**: Zustand
 - **Charts**: Recharts
-- **Tests**: Jest (86 tests, 5 suites)
+- **Tests**: Jest (131 tests, 8 suites)
 - **Shaders**: GLSL (night vision, thermal/FLIR)
 
 ## Key Features
@@ -68,7 +68,7 @@ npm run dev
 ## Tests
 
 ```bash
-npm test          # 86 tests, 5 suites, ~1.2s
+npm test          # 131 tests, 8 suites, ~2.6s
 ```
 
 ## Project Structure
@@ -91,4 +91,4 @@ src/
 
 ## Part of Madgic
 
-Satellite-Spy is part of the [Madgic](https://github.com/majdigo) portfolio. See `docs/shared_brain/REGISTRY.md` for cross-project contributions.
+Satellite-Spy is part of the [Madgic](https://github.com/majdigo) portfolio. See `docs/shared_brain/REGISTRY.md` for cross-project contributions and `.madgic/STATUS.md` for project governance.

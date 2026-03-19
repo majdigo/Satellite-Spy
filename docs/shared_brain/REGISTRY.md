@@ -2,15 +2,16 @@
 
 **Projet** : Satellite-Spy  
 **Domaine** : Spatial Intelligence · Geopolitical Monitoring · Market Correlation  
-**Version** : 1.0.0  
-**Date** : 2026-03-16  
+**Version** : 2.0.0  
+**Date** : 2026-03-19  
 
 ## Insights
 
 | ID | Titre | Status |
 |----|-------|--------|
 | I-001 | World Model Ontology — Entity/Relation Graph | Active |
-| I-002 | Dual Data Fusion Pattern (Static Strategic + Live) | Active |
+| I-002 | EventBus Architecture Decision | Active |
+| I-003 | Dual Data Fusion Pattern (Static Strategic + Live) | Active |
 
 ## ADRs
 
@@ -18,6 +19,13 @@
 |----|-------|--------|
 | ADR-001 | AI Plugin Architecture (Rule-Based + Remote LLM) | Accepted |
 | ADR-002 | OpenRouter as Shared LLM Gateway | Accepted |
+
+## Interfaces
+
+| ID | Titre | Status |
+|----|-------|--------|
+| IF-001 | IWorldModel (17 entity types, 14 relations) | Active |
+| IF-002 | ISimulationAPI (7 scenarios, XR format) | Active |
 
 ## Domain Knowledge
 

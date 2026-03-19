@@ -1,6 +1,6 @@
 # IWorldModel — Interface du World Model Satellite-Spy
 
-**Source** : `src/lib/engine/world-model.ts` (573 LOC)  
+**Source** : `src/lib/engine/world-model.ts` (589 LOC)  
 **Pattern** : Graphe dirigé pondéré (entités + relations + chaînes causales)
 
 ---

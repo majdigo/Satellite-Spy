@@ -151,8 +151,8 @@ entity_statuses:
   - critical
 
 # =============================================================================
-# Simulation Scenarios (6)
-# Source: src/lib/engine/simulation-engine.ts L80-145
+# Simulation Scenarios (7 = 6 geopolitical + 1 logistics)
+# Source: src/lib/engine/simulation-engine.ts L80-163
 # =============================================================================
 simulation_scenarios:
   - id: sim-hormuz-closure
@@ -196,6 +196,13 @@ simulation_scenarios:
     target: country-UKR
     severity: critical
     market_impact: "Wheat +20-60%, Gas +30-80%, RUB -10-30%"
+
+  - id: sim-logistics-disruption
+    name: "Persian Gulf Supply Chain Disruption"
+    trigger_type: chokepoint_closure
+    target: route-hormuz-rotterdam
+    severity: high
+    market_impact: "Oil +5-20%, Shipping +20-50%, reroute via Cape +14 days"
 
 # =============================================================================
 # Scenario Pattern Library (6 additional)
