@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildGDELTGeoUrl, parseGDELTGeoJSON } from "@/lib/api/gdelt";
+import { gdeltToQuantumData } from "@/types/geo-event-quantum";
 
 export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams.get("query") || "conflict OR crisis OR military";
   const timespan = request.nextUrl.searchParams.get("timespan") || "24h";
   const maxpoints = parseInt(request.nextUrl.searchParams.get("maxpoints") || "500");
+  const format = request.nextUrl.searchParams.get("format"); // "quantum" for QuantumData format
 
   try {
     const url = buildGDELTGeoUrl({
@@ -25,6 +27,18 @@ export async function GET(request: NextRequest) {
 
     const geojson = await response.json();
     const events = parseGDELTGeoJSON(geojson);
+
+    // Return GeoEventQuantumData format if requested
+    if (format === "quantum") {
+      const quantumEvents = events.map(gdeltToQuantumData);
+      return NextResponse.json({
+        query,
+        timespan,
+        count: quantumEvents.length,
+        quantumData: quantumEvents,
+        fetchedAt: new Date().toISOString(),
+      });
+    }
 
     return NextResponse.json({
       query,

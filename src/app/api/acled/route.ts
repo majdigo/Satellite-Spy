@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { ConflictEvent, ConflictEventType, SeverityLevel } from "@/types";
+import { acledToQuantumData } from "@/types/geo-event-quantum";
 
 const ACLED_API = "https://api.acleddata.com/acled/read";
 
@@ -80,6 +81,17 @@ export async function GET(request: NextRequest) {
         };
       }
     );
+
+    // Return GeoEventQuantumData format if requested
+    const format = request.nextUrl.searchParams.get("format");
+    if (format === "quantum") {
+      const quantumEvents = conflicts.map(acledToQuantumData);
+      return NextResponse.json({
+        count: quantumEvents.length,
+        quantumData: quantumEvents,
+        fetchedAt: new Date().toISOString(),
+      });
+    }
 
     return NextResponse.json({
       count: conflicts.length,

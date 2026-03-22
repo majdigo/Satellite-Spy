@@ -26,6 +26,11 @@ export interface EventMap {
   // System events
   "system:error": { source: string; error: string };
   "system:datasource": { name: string; status: string; count?: number };
+  // Drone / Physical lab events (Phase A preparation)
+  "drone:telemetry": { droneId: string; lat: number; lon: number; altitude: number; battery: number; speed: number; heading: number; timestamp: string };
+  "drone:detection": { droneId: string; detectedClass: string; confidence: number; bbox: { x: number; y: number; w: number; h: number }; lat: number; lon: number; timestamp: string };
+  "drone:photo": { droneId: string; imagePath: string; lat: number; lon: number; altitude: number; gimbalAngle: number; timestamp: string };
+  "sensor:reading": { sensorId: string; sensorType: string; value: number; unit: string; room?: string; timestamp: string };
 }
 
 export type EventName = keyof EventMap;

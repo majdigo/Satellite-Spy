@@ -3,7 +3,10 @@
 import { useEffect, useRef, useCallback } from "react";
 import { useAppStore } from "@/store";
 import { computeOrbitPath } from "@/lib/api/satellites";
+import { SEVERITY_COLORS } from "@/lib/design/geo-severity-colors";
+import { MAQAM_PALETTE } from "@/lib/design/quantum-design-system";
 import type { SatellitePosition, AircraftPosition, GDELTEvent, ConflictEvent, NaturalDisaster } from "@/types";
+import type { GeoSeverity } from "@/types/geo-event-quantum";
 import type { Cartesian2 as CesiumCartesian2 } from "cesium";
 
 let Cesium: typeof import("cesium") | null = null;
@@ -336,12 +339,10 @@ export default function GlobeViewer({ className }: GlobeViewerProps) {
         const key = `dis-${disaster.id}`;
         if (entitiesRef.current.has(key)) continue;
 
-        const color =
-          disaster.severity === "critical"
-            ? Cesium.Color.MAGENTA
-            : disaster.severity === "high"
-            ? Cesium.Color.ORANGE
-            : Cesium.Color.YELLOW;
+        // Maqam design system: disaster severity colors
+        const disSeverity = (disaster.severity || "low") as GeoSeverity;
+        const disColor = SEVERITY_COLORS[disSeverity] || SEVERITY_COLORS.medium;
+        const color = Cesium.Color.fromCssColorString(disColor.fill);
 
         const size = disaster.severity === "critical" ? 10 : disaster.severity === "high" ? 7 : 5;
 
@@ -388,11 +389,12 @@ export default function GlobeViewer({ className }: GlobeViewerProps) {
         const key = `geo-${event.globalEventId}`;
         if (entitiesRef.current.has(key)) continue;
 
+        // Maqam design system: conflict events → Saba red, cooperation → Bayati green
         const isConflict =
           event.quadClass === "material_conflict" || event.quadClass === "verbal_conflict";
         const color = isConflict
-          ? Cesium.Color.RED.withAlpha(0.7)
-          : Cesium.Color.CYAN.withAlpha(0.5);
+          ? Cesium.Color.fromCssColorString(MAQAM_PALETTE.saba.primary).withAlpha(0.7)
+          : Cesium.Color.fromCssColorString(MAQAM_PALETTE.bayati.primary).withAlpha(0.5);
 
         const entity = viewer.entities.add({
           id: key,
@@ -427,14 +429,10 @@ export default function GlobeViewer({ className }: GlobeViewerProps) {
         const key = `conf-${conflict.id}`;
         if (entitiesRef.current.has(key)) continue;
 
-        const color =
-          conflict.severity === "critical"
-            ? Cesium.Color.RED
-            : conflict.severity === "high"
-            ? Cesium.Color.ORANGE
-            : conflict.severity === "medium"
-            ? Cesium.Color.YELLOW
-            : Cesium.Color.fromCssColorString("#00cc00");
+        // Maqam design system: severity → color (Bayati green → Saba red)
+        const severityKey = (conflict.severity || "low") as GeoSeverity;
+        const maqamColor = SEVERITY_COLORS[severityKey] || SEVERITY_COLORS.low;
+        const color = Cesium.Color.fromCssColorString(maqamColor.fill);
 
         const size =
           conflict.severity === "critical"

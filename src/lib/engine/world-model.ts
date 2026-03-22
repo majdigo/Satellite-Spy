@@ -41,7 +41,12 @@ export type EntityType =
   | "fleet"         // maritime/air fleet
   | "warehouse"     // storage/distribution center
   | "shipment"      // goods in transit
-  | "route";        // defined trade/transport route
+  | "route"         // defined trade/transport route
+  // Physical lab (drone, IoT, ground truth)
+  | "drone"         // UAV with camera + GPS + IMU
+  | "sensor"        // IoT sensor (temperature, motion, air quality)
+  | "ground_object" // object detected by YOLO (building, vehicle, person)
+  | "terrain_mesh"; // 3D reconstruction from photogrammetry
 
 export interface WorldEntity {
   id: string;
@@ -86,7 +91,12 @@ export type RelationType =
   // Logistics relations (added for Masar AI / supply chain)
   | "stores_at"        // A stores goods at B (warehouse)
   | "ships_via"        // A ships goods via B (route/chokepoint)
-  | "delivers_to";     // A delivers to B (destination)
+  | "delivers_to"      // A delivers to B (destination)
+  // Physical lab relations (drone, sensor, ground truth)
+  | "observes"         // drone/sensor observes an entity/area
+  | "detected_at"      // ground_object detected at location by sensor
+  | "covers"           // terrain_mesh covers a geographic area
+  | "fused_from";      // fused state derived from multiple sensor readings (Kalman)
 
 export interface WorldRelation {
   id: string;

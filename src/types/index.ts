@@ -2,6 +2,24 @@
 // Satellite Spy — Type Definitions
 // ============================================================================
 
+// --- Madgic QuantumData (shared core port) ---
+export type {
+  TruthLayer,
+  QuantumLink,
+  QuantumSource,
+  QuantumData,
+} from "./quantum-data";
+export { createQuantumData } from "./quantum-data";
+
+// --- GeoEvent QuantumData (domain-specific) ---
+export type {
+  PLOVEREventType,
+  GeoSeverity,
+  SourceFeed,
+  GeoEventQuantumData,
+} from "./geo-event-quantum";
+export { gdeltToQuantumData, acledToQuantumData } from "./geo-event-quantum";
+
 // --- Satellite Types ---
 export interface TLEData {
   name: string;
