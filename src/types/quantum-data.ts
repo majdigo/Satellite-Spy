@@ -12,7 +12,7 @@ export type TruthLayer =
   | "OBSERVED"         // extracted from an official document
   | "COMPUTED"         // calculated from traceable inputs
   | "ESTIMATED"        // inferred, fallback, hypothesis
-  | "MARKET_REF";      // market data, comparison only
+  | "MARKET_REFERENCE"; // market data, comparison only
 
 /**
  * A link between two QuantumData nodes in the knowledge graph.
