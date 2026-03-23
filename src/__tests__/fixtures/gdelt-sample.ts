@@ -1,0 +1,123 @@
+// Real GDELT data fixtures for testing
+// Based on actual GDELT API responses captured 2026-03-23
+
+export const GDELT_DOC_RESPONSE = {
+  articles: [
+    {
+      url: "https://lajmi.net/trump-iran-energy-talks/",
+      url_mobile: "",
+      title: "Trump: US to halt attacks on Iran energy targets after productive talks",
+      seendate: "20260323T150000Z",
+      socialimage: "https://example.com/image1.jpg",
+      domain: "lajmi.net",
+      language: "Albanian",
+      sourcecountry: "Kosovo",
+    },
+    {
+      url: "https://markets.financialcontent.com/comtech-army-modem",
+      url_mobile: "",
+      title: "Comtech Secures Strategic Foothold in US Army Modernization",
+      seendate: "20260323T150000Z",
+      socialimage: "https://example.com/image2.jpg",
+      domain: "markets.financialcontent.com",
+      language: "English",
+      sourcecountry: "United States",
+    },
+    {
+      url: "https://example.com/ukraine-conflict-update",
+      url_mobile: "",
+      title: "Ukraine front line update: heavy shelling in Donetsk region",
+      seendate: "20260323T140000Z",
+      socialimage: "",
+      domain: "example.com",
+      language: "English",
+      sourcecountry: "Ukraine",
+    },
+    {
+      url: "https://example.com/china-taiwan-strait",
+      url_mobile: "",
+      title: "Chinese military exercises near Taiwan Strait intensify",
+      seendate: "20260323T130000Z",
+      socialimage: "",
+      domain: "example.com",
+      language: "English",
+      sourcecountry: "Taiwan",
+    },
+    {
+      url: "https://example.com/unknown-country-article",
+      url_mobile: "",
+      title: "Article from unknown country",
+      seendate: "20260323T120000Z",
+      socialimage: "",
+      domain: "example.com",
+      language: "English",
+      sourcecountry: "Atlantis",  // Should be filtered out (no coords)
+    },
+  ],
+};
+
+// Legacy GEO API GeoJSON format (for when/if GEO API comes back)
+export const GDELT_GEO_RESPONSE = {
+  type: "FeatureCollection",
+  features: [
+    {
+      type: "Feature",
+      properties: {
+        url_mobile: "gdelt-geo-001",
+        date: "2026-03-23T15:00:00Z",
+        url: "https://example.com/conflict-syria",
+        name: "Heavy fighting in Aleppo region",
+        title: "Heavy fighting in Aleppo region",
+        tone: -6.5,
+        goldstein: -8.0,
+        mentioncount: 45,
+        sourcecount: 12,
+        artcount: 23,
+        avgtone: -5.2,
+        actor1name: "Syrian Government",
+        actor1countrycode: "SYR",
+        actor1type: "GOV",
+        actor2name: "Opposition Forces",
+        actor2countrycode: "SYR",
+        actor2type: "REB",
+        eventcode: "190",
+        quadclass: 4,
+        countrycode: "SY",
+        locationname: "Aleppo, Syria",
+      },
+      geometry: {
+        type: "Point",
+        coordinates: [37.16, 36.2],
+      },
+    },
+    {
+      type: "Feature",
+      properties: {
+        url_mobile: "gdelt-geo-002",
+        date: "2026-03-23T14:30:00Z",
+        url: "https://example.com/trade-deal",
+        name: "US-Japan trade agreement signed",
+        tone: 4.2,
+        goldstein: 6.0,
+        mentioncount: 89,
+        sourcecount: 34,
+        artcount: 67,
+        avgtone: 3.8,
+        actor1name: "United States",
+        actor1countrycode: "USA",
+        actor1type: "GOV",
+        actor2name: "Japan",
+        actor2countrycode: "JPN",
+        actor2type: "GOV",
+        eventcode: "036",
+        quadclass: 2,
+        countrycode: "US",
+        locationname: "Washington DC",
+      },
+      geometry: {
+        type: "Point",
+        coordinates: [-77.04, 38.9],
+      },
+    },
+  ],
+};

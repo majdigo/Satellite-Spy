@@ -26,7 +26,7 @@ export const SEVERITY_COLORS: Record<GeoSeverity, { fill: string; stroke: string
  * Map truth layer to color for QuantumData nodes on the globe.
  */
 export function truthLayerColor(layer: TruthLayer): string {
-  const colorSet = TRUTH_COLORS[layer === "MARKET_REF" ? "MARKET_REFERENCE" : layer];
+  const colorSet = TRUTH_COLORS[layer];
   return colorSet?.text ?? "#9E9E9E";
 }
 

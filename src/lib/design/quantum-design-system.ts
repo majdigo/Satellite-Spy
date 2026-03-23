@@ -8,7 +8,7 @@
  *   COMPUTED       → Rast      (nobility, structure, logic)
  *   ESTIMATED      → Hijaz     (tension, mystery, attention)
  *   USER_INPUT     → Sikah     (nostalgia, reflection)
- *   MARKET_REF     → Nahawand  (melancholy, introspection, external)
+ *   MARKET_REFERENCE → Nahawand  (melancholy, introspection, external)
  *
  * Visual channels:
  *   COLOR     → Truth Layer (provenance via maqam)

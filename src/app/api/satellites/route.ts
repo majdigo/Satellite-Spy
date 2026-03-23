@@ -39,9 +39,13 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error(`Failed to fetch TLE data for ${category}:`, error);
-    return NextResponse.json(
-      { error: "Failed to fetch satellite data", category },
-      { status: 502 }
-    );
+    // Graceful degradation: return empty array instead of error status
+    return NextResponse.json({
+      category,
+      count: 0,
+      tles: [],
+      fetchedAt: new Date().toISOString(),
+      error: "Failed to fetch satellite data — CelesTrak may be unavailable",
+    });
   }
 }

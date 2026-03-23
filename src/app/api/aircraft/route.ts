@@ -44,9 +44,11 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Failed to fetch aircraft data:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch aircraft data", aircraft: [] },
-      { status: 502 }
-    );
+    return NextResponse.json({
+      count: 0,
+      aircraft: [],
+      timestamp: Math.floor(Date.now() / 1000),
+      error: "Failed to fetch aircraft data — OpenSky may be unavailable",
+    });
   }
 }
