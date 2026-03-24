@@ -55,7 +55,7 @@ describe("QuantumData", () => {
   });
 
   test("all 4 TruthLayer values are valid", () => {
-    const layers: TruthLayer[] = ["OBSERVED", "COMPUTED", "ESTIMATED", "MARKET_REF"];
+    const layers: TruthLayer[] = ["OBSERVED", "COMPUTED", "ESTIMATED", "MARKET_REFERENCE"];
     layers.forEach((layer) => {
       const qd = createQuantumData({
         id: `test-${layer}`,
