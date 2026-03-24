@@ -6,6 +6,7 @@ import { computeOrbitPath } from "@/lib/api/satellites";
 import { SEVERITY_COLORS } from "@/lib/design/geo-severity-colors";
 import { MAQAM_PALETTE } from "@/lib/design/quantum-design-system";
 import { gdeltToBucket, acledToBucket, projectToVisual, recordQuery } from "@/models/GeoEventBucket";
+import { computeHeatmap, heatmapColor, heatmapOpacity } from "@/lib/anomaly-heatmap";
 import type { GeoEventBucket as GeoEventBucketType } from "@/models/GeoEventBucket";
 import type { SatellitePosition, AircraftPosition, GDELTEvent, ConflictEvent, NaturalDisaster } from "@/types";
 import type { GeoSeverity } from "@/types/geo-event-quantum";
@@ -482,6 +483,60 @@ export default function GlobeViewer({ className }: GlobeViewerProps) {
     []
   );
 
+  // Heatmap layer — Cesium rectangle entities (Phase 3)
+  const updateHeatmap = useCallback(
+    (events: GDELTEvent[], conflictsData: ConflictEvent[]) => {
+      if (!viewerRef.current || !Cesium) return;
+      const viewer = viewerRef.current;
+      const currentLayers = useAppStore.getState().layers;
+      const heatLayer = currentLayers.find((l) => l.id === "heatmap");
+      if (!heatLayer?.visible) {
+        // Remove existing heatmap entities
+        for (const [key, entity] of entitiesRef.current) {
+          if (key.startsWith("heat-")) {
+            viewer.entities.remove(entity as InstanceType<typeof Cesium.Entity>);
+            entitiesRef.current.delete(key);
+          }
+        }
+        return;
+      }
+
+      const cells = computeHeatmap(events, conflictsData);
+      const GRID_RES = 2; // must match anomaly-heatmap.ts
+
+      for (const cell of cells) {
+        const key = `heat-${cell.lat}-${cell.lon}`;
+        if (entitiesRef.current.has(key)) continue;
+
+        const color = Cesium.Color.fromCssColorString(heatmapColor(cell.intensity));
+        const opacity = heatmapOpacity(cell.intensity);
+
+        const entity = viewer.entities.add({
+          id: key,
+          rectangle: {
+            coordinates: Cesium.Rectangle.fromDegrees(
+              cell.lon - GRID_RES / 2,
+              cell.lat - GRID_RES / 2,
+              cell.lon + GRID_RES / 2,
+              cell.lat + GRID_RES / 2,
+            ),
+            material: color.withAlpha(opacity),
+            outline: false,
+            height: 0,
+          },
+          properties: {
+            type: "heatmap",
+            eventCount: cell.eventCount,
+            avgGoldstein: cell.avgGoldstein,
+            maxSeverity: cell.maxSeverity,
+          },
+        });
+        entitiesRef.current.set(key, entity);
+      }
+    },
+    []
+  );
+
   // Subscribe to layer visibility changes to trigger re-renders
   const layerVisibility = useAppStore((s) =>
     s.layers.map((l) => `${l.id}:${l.visible}`).join(",")
@@ -493,6 +548,7 @@ export default function GlobeViewer({ className }: GlobeViewerProps) {
   useEffect(() => { updateEvents(gdeltEvents); }, [gdeltEvents, updateEvents, layerVisibility]);
   useEffect(() => { updateConflicts(conflicts); }, [conflicts, updateConflicts, layerVisibility]);
   useEffect(() => { updateDisasters(disasters); }, [disasters, updateDisasters, layerVisibility]);
+  useEffect(() => { updateHeatmap(gdeltEvents, conflicts); }, [gdeltEvents, conflicts, updateHeatmap, layerVisibility]);
 
   // Focus location
   useEffect(() => {

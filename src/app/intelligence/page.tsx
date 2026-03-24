@@ -50,7 +50,7 @@ const TRUTH_BADGE: Record<string, { bg: string; text: string }> = {
 export default function IntelligenceDashboard() {
   useDataFetcher();
 
-  const { gdeltEvents, conflicts, layers, toggleLayer } = useAppStore();
+  const { gdeltEvents, conflicts, layers, toggleLayer, setHighlightedEntityId, setFocusLocation } = useAppStore();
 
   // Filters
   const [filterCountry, setFilterCountry] = useState("");
@@ -59,12 +59,19 @@ export default function IntelligenceDashboard() {
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [bottomView, setBottomView] = useState<"table" | "graph">("table");
 
-  // Selected event
+  // Selected event — synced to store for Globe cross-selection
   const [selectedBucket, setSelectedBucket] = useState<GeoEventBucket | null>(null);
 
   const handleEventSelect = useCallback((bucket: GeoEventBucket) => {
     setSelectedBucket(bucket);
-  }, []);
+    // Sync to globe: highlight the corresponding entity and fly to location
+    setHighlightedEntityId(bucket.id);
+    setFocusLocation({
+      lat: bucket.properties.lat,
+      lon: bucket.properties.lon,
+      zoom: 500,
+    });
+  }, [setHighlightedEntityId, setFocusLocation]);
 
   const heatmapLayer = layers.find((l) => l.id === "heatmap");
 

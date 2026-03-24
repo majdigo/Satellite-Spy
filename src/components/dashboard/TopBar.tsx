@@ -154,6 +154,15 @@ export default function TopBar() {
         </div>
       </form>
 
+      {/* Intelligence Dashboard link */}
+      <a
+        href="/intelligence"
+        className="hidden md:flex items-center gap-1.5 text-[10px] font-mono px-2.5 py-1 border border-[#264653]/50 text-[#264653] hover:bg-[#264653]/20 hover:text-teal-300 transition-colors rounded"
+      >
+        <span className="w-1.5 h-1.5 rounded-full bg-teal-500" />
+        INTEL
+      </a>
+
       {/* Visual Filters */}
       <div className="hidden lg:block"><VisualFilters /></div>
 
