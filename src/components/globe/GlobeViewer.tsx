@@ -30,6 +30,7 @@ export default function GlobeViewer({ className }: GlobeViewerProps) {
     showSatelliteOrbits,
     setSelectedSatellite,
     setSelectedAircraft,
+    setHighlightedEntityId,
     focusLocation,
   } = useAppStore();
 
@@ -98,6 +99,11 @@ export default function GlobeViewer({ className }: GlobeViewerProps) {
               setSelectedSatellite(parsed);
             } else if (entityType === "aircraft") {
               setSelectedAircraft(parsed);
+            }
+            // Set highlightedEntityId for provenance panel (works for all entity types)
+            const entityId = typeof entity.id === "string" ? entity.id : "";
+            if (entityId) {
+              setHighlightedEntityId(entityId);
             }
           } catch {
             // Ignore malformed entity data

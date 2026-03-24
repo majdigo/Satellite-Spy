@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAppStore } from "@/store";
 import LayerControl from "@/components/layers/LayerControl";
 import SatellitePanel from "@/components/panels/SatellitePanel";
@@ -15,10 +15,12 @@ import CrossIntelligencePanel from "@/components/panels/CrossIntelligencePanel";
 import DataStatusPanel from "@/components/panels/DataStatusPanel";
 import ScenarioPanel from "@/components/panels/ScenarioPanel";
 import ActionCenterPanel from "@/components/panels/ActionCenterPanel";
+import ProvenancePanel from "@/components/panels/ProvenancePanel";
 
 type SidebarTab =
   | "actions"
   | "alerts"
+  | "provenance"
   | "regions"
   | "layers"
   | "satellites"
@@ -34,6 +36,7 @@ type SidebarTab =
 const TABS: { id: SidebarTab; label: string; icon: string }[] = [
   { id: "actions", label: "ACTION", icon: "▶" },
   { id: "alerts", label: "ALERTS", icon: "!" },
+  { id: "provenance", label: "QD", icon: "Q" },
   { id: "regions", label: "REGIONS", icon: "O" },
   { id: "layers", label: "LAYERS", icon: "#" },
   { id: "satellites", label: "SAT", icon: "*" },
@@ -48,10 +51,18 @@ const TABS: { id: SidebarTab; label: string; icon: string }[] = [
 ];
 
 export default function Sidebar() {
-  const { sidebarOpen, toggleSidebar, alerts } = useAppStore();
+  const { sidebarOpen, toggleSidebar, alerts, highlightedEntityId } = useAppStore();
   const [activeTab, setActiveTab] = useState<SidebarTab>("actions");
 
   const unackedAlerts = alerts.filter((a) => !a.acknowledged).length;
+
+  // Auto-switch to provenance tab when an entity is clicked on the globe
+  useEffect(() => {
+    if (highlightedEntityId) {
+      setActiveTab("provenance");
+      if (!sidebarOpen) toggleSidebar();
+    }
+  }, [highlightedEntityId, sidebarOpen, toggleSidebar]);
 
   return (
     <>
@@ -107,6 +118,7 @@ export default function Sidebar() {
 
           {activeTab === "actions" && <ActionCenterPanel />}
           {activeTab === "alerts" && <AlertsPanel />}
+          {activeTab === "provenance" && <ProvenancePanel />}
           {activeTab === "regions" && <WatchRegionsPanel />}
           {activeTab === "layers" && <LayerControl />}
           {activeTab === "satellites" && <SatellitePanel />}

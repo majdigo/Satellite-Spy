@@ -10,8 +10,9 @@ import {
   SIMULATION_SCENARIOS,
   type SimulationResult,
 } from "@/lib/engine/simulation-engine";
+import { exportToGeoJSON, downloadGeoJSON } from "@/lib/api/export-geojson";
 
-type ViewMode = "decisions" | "worldmodel" | "simulate";
+type ViewMode = "decisions" | "worldmodel" | "simulate" | "export";
 
 export default function ActionCenterPanel() {
   const {
@@ -83,6 +84,7 @@ export default function ActionCenterPanel() {
           ["decisions", "DECISIONS"],
           ["worldmodel", "WORLD MODEL"],
           ["simulate", "SIMULATE"],
+          ["export", "EXPORT"],
         ] as const).map(([id, label]) => (
           <button
             key={id}
@@ -295,6 +297,46 @@ export default function ActionCenterPanel() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* EXPORT VIEW */}
+      {view === "export" && (
+        <div className="space-y-2">
+          <div className="text-[8px] font-mono text-gray-600 uppercase tracking-wider">
+            Export Current Data as GeoJSON
+          </div>
+          <div className="text-[8px] font-mono text-gray-500">
+            Exports all visible entities (satellites, aircraft, events, conflicts, disasters) as a standard GeoJSON FeatureCollection. Importable in QGIS, Mapbox, deck.gl.
+          </div>
+          <div className="grid grid-cols-2 gap-1 text-[8px] font-mono">
+            <div className="border border-gray-800 p-1.5">
+              <span className="text-cyan-400">{satellites.length}</span> <span className="text-gray-600">satellites</span>
+            </div>
+            <div className="border border-gray-800 p-1.5">
+              <span className="text-blue-400">{aircraft.length}</span> <span className="text-gray-600">aircraft</span>
+            </div>
+            <div className="border border-gray-800 p-1.5">
+              <span className="text-amber-400">{gdeltEvents.length}</span> <span className="text-gray-600">GDELT events</span>
+            </div>
+            <div className="border border-gray-800 p-1.5">
+              <span className="text-red-400">{conflicts.length}</span> <span className="text-gray-600">conflicts</span>
+            </div>
+            <div className="border border-gray-800 p-1.5 col-span-2">
+              <span className="text-orange-400">{disasters.length}</span> <span className="text-gray-600">disasters</span>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              const geojson = exportToGeoJSON({
+                satellites, aircraft, gdeltEvents, conflicts, disasters,
+              });
+              downloadGeoJSON(geojson);
+            }}
+            className="w-full text-[9px] font-mono font-bold text-military-green border border-military-green/40 py-2 hover:bg-military-green/10 transition-colors"
+          >
+            DOWNLOAD GEOJSON ({satellites.length + aircraft.length + gdeltEvents.length + conflicts.length + disasters.length} features)
+          </button>
         </div>
       )}
 
