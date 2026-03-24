@@ -5,6 +5,8 @@ import { useAppStore } from "@/store";
 import { computeOrbitPath } from "@/lib/api/satellites";
 import { SEVERITY_COLORS } from "@/lib/design/geo-severity-colors";
 import { MAQAM_PALETTE } from "@/lib/design/quantum-design-system";
+import { gdeltToBucket, acledToBucket, projectToVisual, recordQuery } from "@/models/GeoEventBucket";
+import type { GeoEventBucket as GeoEventBucketType } from "@/models/GeoEventBucket";
 import type { SatellitePosition, AircraftPosition, GDELTEvent, ConflictEvent, NaturalDisaster } from "@/types";
 import type { GeoSeverity } from "@/types/geo-event-quantum";
 import type { Cartesian2 as CesiumCartesian2 } from "cesium";
@@ -382,7 +384,7 @@ export default function GlobeViewer({ className }: GlobeViewerProps) {
     []
   );
 
-  // Geopolitical events layer
+  // Geopolitical events layer — DataBucket-aware (T2 Agentic Cognitive UI)
   const updateEvents = useCallback(
     (events: GDELTEvent[]) => {
       if (!viewerRef.current || !Cesium) return;
@@ -395,25 +397,29 @@ export default function GlobeViewer({ className }: GlobeViewerProps) {
         const key = `geo-${event.globalEventId}`;
         if (entitiesRef.current.has(key)) continue;
 
-        // Maqam design system: conflict events → Saba red, cooperation → Bayati green
-        const isConflict =
-          event.quadClass === "material_conflict" || event.quadClass === "verbal_conflict";
-        const color = isConflict
-          ? Cesium.Color.fromCssColorString(MAQAM_PALETTE.saba.primary).withAlpha(0.7)
-          : Cesium.Color.fromCssColorString(MAQAM_PALETTE.bayati.primary).withAlpha(0.5);
+        // Convert GDELT event → GeoEventBucket → visual projection
+        const bucket = gdeltToBucket(event);
+        const visual = projectToVisual(bucket);
+
+        const color = Cesium.Color.fromCssColorString(visual.color).withAlpha(visual.opacity);
+        const glowOutline = visual.glowColor
+          ? Cesium.Color.fromCssColorString(visual.glowColor).withAlpha(0.4)
+          : color.withAlpha(0.3);
 
         const entity = viewer.entities.add({
           id: key,
           position: Cesium.Cartesian3.fromDegrees(event.longitude, event.latitude),
           point: {
-            pixelSize: Math.min(12, 4 + event.numMentions * 0.5),
+            pixelSize: visual.size,
             color,
-            outlineColor: color.withAlpha(0.3),
-            outlineWidth: 3,
+            outlineColor: glowOutline,
+            outlineWidth: visual.glowIntensity > 0 ? 5 : 3,
           },
           properties: {
             type: "event",
+            bucketType: "geo_event",
             data: JSON.stringify(event),
+            bucket: JSON.stringify({ id: bucket.id, truthLayer: bucket.truthLayer, confidence: bucket.confidence }),
           },
         });
         entitiesRef.current.set(key, entity);
@@ -422,7 +428,7 @@ export default function GlobeViewer({ className }: GlobeViewerProps) {
     []
   );
 
-  // Conflict layer
+  // Conflict layer — DataBucket-aware (T2 Agentic Cognitive UI)
   const updateConflicts = useCallback(
     (conflictsData: ConflictEvent[]) => {
       if (!viewerRef.current || !Cesium) return;
@@ -435,28 +441,23 @@ export default function GlobeViewer({ className }: GlobeViewerProps) {
         const key = `conf-${conflict.id}`;
         if (entitiesRef.current.has(key)) continue;
 
-        // Maqam design system: severity → color (Bayati green → Saba red)
-        const severityKey = (conflict.severity || "low") as GeoSeverity;
-        const maqamColor = SEVERITY_COLORS[severityKey] || SEVERITY_COLORS.low;
-        const color = Cesium.Color.fromCssColorString(maqamColor.fill);
+        // Convert ACLED conflict → GeoEventBucket → visual projection
+        const bucket = acledToBucket(conflict);
+        const visual = projectToVisual(bucket);
 
-        const size =
-          conflict.severity === "critical"
-            ? 12
-            : conflict.severity === "high"
-            ? 9
-            : conflict.severity === "medium"
-            ? 6
-            : 4;
+        const color = Cesium.Color.fromCssColorString(visual.color).withAlpha(visual.opacity);
+        const glowOutline = visual.glowColor
+          ? Cesium.Color.fromCssColorString(visual.glowColor).withAlpha(0.4)
+          : color.withAlpha(0.3);
 
         const entity = viewer.entities.add({
           id: key,
           position: Cesium.Cartesian3.fromDegrees(conflict.longitude, conflict.latitude),
           point: {
-            pixelSize: size,
-            color: color.withAlpha(0.8),
-            outlineColor: color.withAlpha(0.3),
-            outlineWidth: 4,
+            pixelSize: visual.size,
+            color,
+            outlineColor: glowOutline,
+            outlineWidth: visual.glowIntensity > 0 ? 5 : 4,
           },
           label: conflict.severity === "critical" ? {
             text: `!! ${conflict.location}`,
@@ -470,7 +471,9 @@ export default function GlobeViewer({ className }: GlobeViewerProps) {
           } : undefined,
           properties: {
             type: "conflict",
+            bucketType: "geo_event",
             data: JSON.stringify(conflict),
+            bucket: JSON.stringify({ id: bucket.id, truthLayer: bucket.truthLayer, confidence: bucket.confidence }),
           },
         });
         entitiesRef.current.set(key, entity);
