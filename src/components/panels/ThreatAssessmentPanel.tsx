@@ -3,7 +3,9 @@
 import { useAppStore } from "@/store";
 import { generateThreatAssessment } from "@/lib/api/correlation";
 import { MONITORED_COUNTRIES } from "@/lib/api/economic";
-import { severityBgClass, severityColor } from "@/lib/utils/helpers";
+import { severityBgClass } from "@/lib/utils/helpers";
+import { SEVERITY_COLORS } from "@/lib/design/geo-severity-colors";
+import type { GeoSeverity } from "@/types/geo-event-quantum";
 import { useMemo } from "react";
 
 export default function ThreatAssessmentPanel() {
@@ -93,15 +95,15 @@ export default function ThreatAssessmentPanel() {
                       className="h-full transition-all duration-500"
                       style={{
                         width: `${metric.value}%`,
-                        backgroundColor: severityColor(
-                          metric.value > 70
+                        backgroundColor: SEVERITY_COLORS[
+                          (metric.value > 70
                             ? "critical"
                             : metric.value > 50
                             ? "high"
                             : metric.value > 25
                             ? "medium"
-                            : "low"
-                        ),
+                            : "low") as GeoSeverity
+                        ].fill,
                       }}
                     />
                   </div>

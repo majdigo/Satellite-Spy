@@ -2,7 +2,8 @@
 
 import { useAppStore } from "@/store";
 import { useMemo, useState } from "react";
-import { severityColor } from "@/lib/utils/helpers";
+import { SEVERITY_COLORS } from "@/lib/design/geo-severity-colors";
+import type { GeoSeverity } from "@/types/geo-event-quantum";
 
 type TimelineMode = "events" | "cross-intel" | "combined";
 
@@ -196,8 +197,8 @@ export default function TimelinePanel() {
           } else if (hasOverlap) {
             barGradient = `linear-gradient(to top, #ff333388, #ffb00088, #ffb00022)`; // red→amber gradient
           } else {
-            const color = severityColor(bucket.maxSeverity as "low" | "medium" | "high" | "critical");
-            barGradient = `linear-gradient(to top, ${color}88, ${color}22)`;
+            const sevColor = SEVERITY_COLORS[(bucket.maxSeverity || "low") as GeoSeverity]?.fill ?? "#00cc00";
+            barGradient = `linear-gradient(to top, ${sevColor}88, ${sevColor}22)`;
           }
 
           return (
