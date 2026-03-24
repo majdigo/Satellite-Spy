@@ -93,4 +93,65 @@ export function heatmapOpacity(intensity: number): number {
   return 0.15 + intensity * 0.55;
 }
 
+/**
+ * Compute a temporal sequence of heatmaps for replay animation.
+ * Splits events into time windows and computes a heatmap per window.
+ *
+ * @param windowMs - time window size in milliseconds (default 6h)
+ * @param steps - number of steps in the replay (default 8)
+ */
+export interface TemporalHeatmapFrame {
+  startTime: string;
+  endTime: string;
+  cells: HeatmapCell[];
+}
+
+export function computeTemporalHeatmap(
+  gdeltEvents: GDELTEvent[],
+  conflicts: ConflictEvent[],
+  windowMs: number = 6 * 60 * 60 * 1000,
+  steps: number = 8,
+): TemporalHeatmapFrame[] {
+  // Find time range
+  const times: number[] = [];
+  for (const e of gdeltEvents) {
+    if (e.dateAdded) times.push(new Date(e.dateAdded).getTime());
+  }
+  for (const c of conflicts) {
+    if (c.date) times.push(new Date(c.date).getTime());
+  }
+
+  if (times.length === 0) return [];
+
+  const minTime = Math.min(...times);
+  const maxTime = Math.max(...times);
+  const totalRange = maxTime - minTime || windowMs;
+  const stepMs = totalRange / steps;
+
+  const frames: TemporalHeatmapFrame[] = [];
+
+  for (let i = 0; i < steps; i++) {
+    const windowStart = minTime + i * stepMs;
+    const windowEnd = windowStart + windowMs;
+
+    const filteredGdelt = gdeltEvents.filter((e) => {
+      const t = new Date(e.dateAdded).getTime();
+      return t >= windowStart && t < windowEnd;
+    });
+
+    const filteredConflicts = conflicts.filter((c) => {
+      const t = new Date(c.date).getTime();
+      return t >= windowStart && t < windowEnd;
+    });
+
+    frames.push({
+      startTime: new Date(windowStart).toISOString(),
+      endTime: new Date(windowEnd).toISOString(),
+      cells: computeHeatmap(filteredGdelt, filteredConflicts),
+    });
+  }
+
+  return frames;
+}
+
 export { GRID_RESOLUTION };
