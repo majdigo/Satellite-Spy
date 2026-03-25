@@ -14,15 +14,18 @@
  * S-Agent T5 — Agentic Cognitive UI Sprint
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { useDataFetcher } from "@/hooks/useDataFetcher";
 import { useAppStore } from "@/store";
 import IntelligenceGrid from "@/components/intelligence/IntelligenceGrid";
 import GeoEventForceGraph from "@/components/intelligence/GeoEventForceGraph";
+import EscalationAlertPanel from "@/components/intelligence/EscalationAlertPanel";
 import TruthLayerTag from "@/components/quantum/TruthLayerTag";
 import ConfidenceBadge from "@/components/quantum/ConfidenceBadge";
 import ProvenanceChip from "@/components/quantum/ProvenanceChip";
+import { detectEscalations } from "@/lib/escalation-detector";
+import type { EscalationAlert } from "@/lib/escalation-detector";
 import type { GeoEventBucket } from "@/models/GeoEventBucket";
 import { projectToVisual } from "@/models/GeoEventBucket";
 
@@ -58,6 +61,13 @@ export default function IntelligenceDashboard() {
   const [filterMinConfidence, setFilterMinConfidence] = useState(0);
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [bottomView, setBottomView] = useState<"table" | "graph">("table");
+  const [showAlerts, setShowAlerts] = useState(true);
+
+  // Agentic escalation detection — runs when events change
+  const escalationAlerts = useMemo(
+    () => detectEscalations(gdeltEvents, conflicts),
+    [gdeltEvents, conflicts],
+  );
 
   // Selected event — synced to store for Globe cross-selection
   const [selectedBucket, setSelectedBucket] = useState<GeoEventBucket | null>(null);
@@ -121,6 +131,18 @@ export default function IntelligenceDashboard() {
           }`}
         >
           {showHeatmap ? "Heatmap ON" : "Heatmap OFF"}
+        </button>
+
+        {/* Alerts toggle */}
+        <button
+          onClick={() => setShowAlerts((a) => !a)}
+          className={`text-xs px-3 py-1 rounded border transition-colors ${
+            showAlerts
+              ? "bg-[#E63946]/20 border-[#E63946]/50 text-[#E63946]"
+              : "bg-transparent border-[#264653]/30 text-[#9CA3AF] hover:bg-[#264653]/20"
+          }`}
+        >
+          Alerts {escalationAlerts.length > 0 ? `(${escalationAlerts.length})` : "OFF"}
         </button>
 
         {/* Table | Graph toggle */}
@@ -194,10 +216,29 @@ export default function IntelligenceDashboard() {
             )}
           </div>
 
-          {/* Bottom-right: EntityCard of selected event */}
-          <div className="w-80 border-t border-[#264653]/30 bg-[#1A1A2E] overflow-auto p-3">
-            {selectedBucket ? (
-              <EntityCard bucket={selectedBucket} />
+          {/* Bottom-right: Alerts or EntityCard */}
+          <div className="w-80 border-t border-[#264653]/30 bg-[#1A1A2E] overflow-auto">
+            {showAlerts && escalationAlerts.length > 0 ? (
+              <EscalationAlertPanel
+                alerts={escalationAlerts}
+                className="h-full"
+                onAlertClick={(alert) => {
+                  // Focus globe on the alert region
+                  const regionEvent = gdeltEvents.find((e) => e.country === alert.region) ||
+                    conflicts.find((c) => c.country === alert.region);
+                  if (regionEvent) {
+                    setFocusLocation({
+                      lat: regionEvent.latitude,
+                      lon: regionEvent.longitude,
+                      zoom: 500,
+                    });
+                  }
+                }}
+              />
+            ) : selectedBucket ? (
+              <div className="p-3">
+                <EntityCard bucket={selectedBucket} />
+              </div>
             ) : (
               <div className="flex items-center justify-center h-full text-xs text-[#9CA3AF]">
                 Click an event to view details
