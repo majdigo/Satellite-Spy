@@ -88,6 +88,34 @@ Market Data      ──┘       └──────┬───────�
 
 ---
 
+## Competitive Analysis
+
+### Vs Palantir Gotham
+Palantir is the gold standard for intelligence analytics ($2.87B revenue).
+- **What they have that we don't**: massive scale (petabytes), classified networks, human analyst workflows, 20 years of domain expertise
+- **What WE have that they don't**: knowledge graph with TYPED propagation (not just entity linking), confidence tracking on every data point, cross-domain WACC adjustment (geo→finance), agentic UI that reasons and explains WHY
+- **Our killer feature**: the provenance trace. In Palantir, you see connections. In Satellite-Spy, you see connections + confidence + reasoning + how changing one input cascades through domains.
+
+### Vs Dataminr (real-time alerts)
+Dataminr detects events from social media/news in real-time ($1B+ valuation).
+- **What they have**: proprietary NLP, Twitter firehose, 70+ languages, sub-minute latency
+- **What WE have that they don't**: structured knowledge graph (not just NLP extraction), cross-domain propagation (event→supplier→budget→price), Bayesian confidence that improves with corroboration, visual projection (globe+grid+graph, not just a feed)
+- **Our killer feature**: cross-source corroboration. When GDELT and ACLED both report the same event, our system BOOSTS confidence via Bayesian update. Dataminr doesn't fuse OSINT sources this way.
+
+### Vs Recorded Future (threat intelligence)
+Recorded Future is the leading cyber+geopolitical threat intelligence platform.
+- **What they have**: 1M+ sources, threat actor profiles, dark web monitoring, IOC feeds
+- **What WE have that they don't**: direct financial model integration (CRP→WACC→price), agentic escalation detection with reasoning (not just alerts), knowledge graph with typed edges (not just entity extraction), open architecture (not SaaS lock-in)
+- **Our killer feature**: the cross-domain traversal. "Iran crisis → supplier NMPG drops → budget overruns → stock price impact" — Recorded Future can't do this. They stop at the threat level.
+
+### Our Unique Position
+None of these platforms connect geopolitical events directly to financial models.
+Satellite-Spy's killer feature is the **cross-domain knowledge graph** that lets
+a GDELT event in Tehran propagate through supply chain, budget, and DCF models
+with full provenance and confidence tracking.
+
+---
+
 ## Priority Refactorings
 
 ### P0: Unified Confidence Framework
