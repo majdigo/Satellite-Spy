@@ -702,3 +702,50 @@ Un satellite envoie sa position toutes les 10s. ACLED met à jour 1 fois/jour. L
 
 **Q5 : Comment la propagation cross-domaine (conflit → marché → supply chain) fonctionne sans être un spaghetti de règles ad-hoc ?**
 Aujourd'hui : `if conflicts_IRQ > threshold AND brent_change > 5% → alert`. C'est un script. Dans le graphe : `GeoEvent -CORRELATES_WITH(weight=0.7)→ Commodity("Brent")`. Mais CORRELATES_WITH est vague. Le poids 0.7 vient d'où ? Du domaine expert ? D'une régression ? D'un GNN ? Si le poids est appris, il change au fil du temps. Comment mettre à jour les poids de corrélation sans casser la traçabilité ? C'est le problème fondamental du "intelligence fusion" et aucune plateforme open-source ne le résout proprement.
+
+---
+
+### Appendice : Recherche web complémentaire (sources vérifiées)
+
+#### Ontologies d'événements (Problème 1)
+
+- **SEM (Simple Event Model)** — VU Amsterdam. Classes : `sem:Event`, `sem:Actor`, `sem:Place`, `sem:Time`. Domain-agnostic, mappe directement à notre GeoEvent+Actor. Paper: "Design and use of the Simple Event Model" (van Hage et al.)
+- **LODE (Linking Open Descriptions of Events)** — DOLCE Ultra-Lite. Sépare spatial extent de temporal extent. Limitation : pas de spatiotemporal extent combiné (important pour les mouvements de troupes). Paper: Springer ASWC 2009.
+- **STIX 2.1** (OASIS) — SDOs (Indicators, Campaigns, Threat Actors, Locations) connectés par SROs (Relationship Objects). Pattern indicator+sighting+relationship directement applicable. JSON-based, graph-structured. Le Location SDO contient des coordonnées.
+- **GDELT GKG** — 2.5 trillion data points. CAMEO event codes + themes + organizations liés dans un graphe quotidien. Paper récent: "Talking to GDELT Through Knowledge Graphs" (arXiv 2503.07584, 2025).
+
+#### Déclaration de modèles (Problème 2)
+
+- **OGC GeoSPARQL 1.1** — `geo:Feature`, `geo:Geometry`, relations spatiales (contains, intersects, within). Sérialisations WKT/GeoJSON. SHACL validators inclus. Supporté par GraphDB, Apache Jena, Virtuoso.
+- **Neo4j Spatial** — Plugin communautaire. R-tree spatial index dans le graphe. WKT/WKB, topology operations. Meilleur DX que les triple stores pour un stack TypeScript/Next.js.
+- **Owlready2** — ORM Python pour ontologies OWL. Benchmarks montrent qu'il surpasse Neo4j et MongoDB pour les opérations graphe/objet. Idéal pour un backend Python de validation.
+- **Palantir Foundry Ontology** — Logical types pour géospatial (GeoJSON strings, GeoPoint structs). Séries géotemporelles pour les changements de position d'entités.
+
+#### Ingestion (Problème 3)
+
+- **Kafka + Neo4j Sink Connector** (Confluent) — Streaming d'événements vers Neo4j en temps réel. CDC Neo4j pour feedback. Production-grade, exactly-once semantics.
+- **Transformer NER → Neo4j** — Pipeline : raw text → HuggingFace NER → spaCy relation extraction → Neo4j. Pour les sources non-GDELT.
+- **GDELT Architecture** — 65 langues, update 15min. NER + geocoding spécialisé. GKG file = graphe quotidien avec EventIDs. Repo: github.com/AAbercrombie0492/gdelt_distributed_architecture
+
+#### Analytics (Problème 4)
+
+- **FinDKG** (arXiv 2407.10909) — Dynamic KG from financial news via fine-tuned LLaMA. KGTransformer (attention GNN) pour temporal link prediction. ~15% uplift MRR. Directement applicable à la prédiction d'escalade. GitHub: xiaohui-victor-li/FinDKG
+- **H3** (Uber) — Hexagones hiérarchiques résolution 0-15. Distances uniformes entre voisins. Cell IDs 64-bit pour fast joins. JS bindings: `h3-js`. Remplacement idéal de notre grille 2°×2°.
+- **ISWC 2024 ADDKG** — Challenge track anomaly detection on dynamic KGs. GNN continu + raisonnement logique. Applicable à notre système d'alertes.
+
+#### Projection UI (Problème 5)
+
+- **Kepler.gl + deck.gl** (Uber/vis.gl) — 15+ layer types spécialisés (Arc, Hexagon, Heatmap, Trip). Config déclarative JSON → map layers. deck.gl v9 cible WebGPU. Pattern de projection le plus proche de ce qu'on veut.
+- **SHACL 1.2 UI** (W3C Draft) — Vocabulaire UI dans les shapes SHACL. Sparnatural : auto-génère des UIs de query depuis des fichiers SHACL. SHACLens : vues coordonnées avec "projection view".
+- **CesiumJS + deck.gl** — Combinables : CesiumJS pour le globe + terrain, deck.gl pour les layers dynamiques. Uber a documenté l'intégration 3D Tiles + loaders.gl.
+- **Gap identifié** : Personne n'a construit un moteur **SHACL → CesiumJS** qui génère automatiquement des layers cartographiques depuis des shapes ontologiques. C'est une opportunité d'innovation.
+
+#### Tableau Réutiliser vs Inventer
+
+| Couche | Réutiliser | Inventer |
+|--------|-----------|----------|
+| Ontologie événements | SEM + STIX patterns | Schema unifié SEM/STIX/GeoSPARQL + severity |
+| Déclaration modèle | GeoSPARQL vocabulaire + Neo4j Spatial | DSL TypeScript graph schema (Zod→graph) |
+| Ingestion | GDELT GKG + Kafka-Neo4j connector | Adaptateur normalisation multi-source |
+| Analytics | FinDKG/KGTransformer + H3 indexing | GNN spatiotemporel H3 + dynamic KG |
+| Projection UI | CesiumJS + deck.gl + SHACL 1.2 UI | Moteur SHACL→CesiumJS auto layer gen |
