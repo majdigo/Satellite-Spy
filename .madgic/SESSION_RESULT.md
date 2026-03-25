@@ -749,3 +749,94 @@ Aujourd'hui : `if conflicts_IRQ > threshold AND brent_change > 5% → alert`. C'
 | Ingestion | GDELT GKG + Kafka-Neo4j connector | Adaptateur normalisation multi-source |
 | Analytics | FinDKG/KGTransformer + H3 indexing | GNN spatiotemporel H3 + dynamic KG |
 | Projection UI | CesiumJS + deck.gl + SHACL 1.2 UI | Moteur SHACL→CesiumJS auto layer gen |
+
+---
+
+### Dimension A : Hypothèses comme distributions — domaine géospatial
+
+Dans le géospatial OSINT, les "hypothèses" ne sont pas des taux (WACC) mais des **évaluations de fiabilité et de sévérité** :
+
+**1. Confiance d'un événement GDELT :** Actuellement `confidence = numSources / 20` (heuristique linéaire). En réalité, la confiance devrait être une distribution : `confidence ~ Beta(numSources, 20 - numSources)`. Avec 12 sources sur 20 possibles : `Beta(12, 8)` → mean=0.6, variance=0.011. Cela permet de calculer des intervalles de confiance sur la sévérité, pas juste un point estimate.
+
+**2. Goldstein scale comme variable aléatoire :** GDELT assigne un goldstein_scale de -7.5 à un événement. Mais plusieurs articles couvrant le même événement ont des goldstein différents (-6, -8, -9). Au lieu de prendre la valeur d'un article, on devrait modéliser `goldstein ~ Normal(mean_articles, std_articles)`. Avec 3 articles : `N(-7.67, 1.53)`. La sévérité "critical" (< -7) a une probabilité de 67%, pas 100%.
+
+**3. Position géographique comme incertitude :** GDELT GEO API donne des coordonnées au niveau ville. GDELT DOC API donne des coordonnées au niveau pays (centroïde + jitter). La précision spatiale est une incertitude : `lat ~ Normal(33.3, 0.01)` pour GEO API vs `lat ~ Normal(33.3, 2.0)` pour DOC API. Cette incertitude se propage dans le heatmap : une cellule heatmap alimentée par des événements DOC API a une confiance spatiale plus faible.
+
+**4. Bruit du capteur satellite :** Un satellite TLE a une erreur de position de ±200m en altitude et ±50m en lat/lon. La position est `lat ~ Normal(lat_tle, 0.0005)`. Quand on détecte un "satellite de reconnaissance au-dessus de l'Irak", l'incertitude sur la position détermine si le satellite est au-dessus de l'Irak ou de la Syrie voisine.
+
+**Pattern Bayesian pour la cross-validation GDELT×ACLED :**
+```
+Prior (GDELT seul):    severity ~ Categorical([0.1, 0.2, 0.3, 0.4])  // [low, med, high, crit]
+Likelihood (ACLED):    P(fatalities=5 | severity=high) = 0.6
+Posterior:             severity ~ Categorical([0.02, 0.08, 0.52, 0.38])  // ACLED shifts towards high
+```
+Le pattern Black-Litterman s'applique : GDELT est le "market equilibrium" (prior), ACLED est la "view" (observation directe), le posterior combine les deux avec pondération par confiance.
+
+---
+
+### Dimension B : What-if scenarios — domaine géospatial
+
+Sur les 10 types de what-if du catalogue, voici les 6 pertinents pour le géospatial OSINT :
+
+**1. Base/Bull/Bear → Escalation scenarios**
+- Base : tensions actuelles continuent au même niveau (status quo)
+- Bull (pour l'analyste de risque) : désescalade, accords diplomatiques
+- Bear : escalade militaire, blocus, intervention étrangère
+- Graph : 3 branches depuis le même état actuel, seuls les nœuds ESTIMATED divergent
+
+**2. Stress testing → "Hormuz scenario"**
+- Scénario : le détroit d'Ormuz est bloqué (événement extrême)
+- Variables racine : shipping_volume=0, oil_price=+50%, regional_conflicts=+300%
+- Propagation : FEEDS → tous les marchés corrélés (Brent, transport, assurance)
+- Le graphe montre exactement quels pays/ports/routes sont impactés via edge traversal
+
+**3. Reverse stress → "Que faudrait-il pour déclencher l'alerte régionale ?"**
+- Target : RegionalAlert(severity=CRITICAL)
+- Backward search : combien d'événements critiques en 24h dans la watch region ? (threshold=3)
+- Résultat : "Il faudrait 3 événements goldstein < -7 dans un rayon de 500km en 24h"
+- C'est un constraint satisfaction sur le graphe : trouver les inputs minimaux
+
+**4. Monte Carlo → "Probabilité d'escalade cette semaine"**
+- Pour chaque jour des 7 prochains : tirer le nombre d'événements ~ Poisson(lambda=3/jour pour IRQ)
+- Tirer le goldstein de chaque événement ~ Normal(-4, 2.5)
+- Propager et vérifier si le threshold d'alerte est franchi
+- Après 10000 runs : P(alerte_régionale cette semaine) = 34%
+
+**5. Historical replay → "Rejouer le Printemps Arabe 2011"**
+- Prendre les données GDELT du 17 Dec 2010 — 15 Mar 2011 (Tunisie → Egypte → Libye → Syrie)
+- Appliquer le pattern d'escalade (fréquence + sévérité + contagion géographique) au contexte actuel
+- Le graphe TEMPORAL_NEXT relie les jours, SAME_LOCATION relie les régions
+
+**6. Conditional → "Si conflit Iran, alors impact sur supply chain Al Soudah"**
+- Si : GeoEvent(country=IRN, severity=critical, count>5/day)
+- Alors : WatchRegion("Persian Gulf").propagate_to_market() → Brent +30%
+- Alors : M-Agent reçoit signal CORRELATES_WITH sur les fournisseurs KSA
+- C'est un scénario conditionnel cross-domaine encodé dans les edges du graphe
+
+**Scénarios = branches du graphe :** Chaque scénario est un overlay qui modifie seulement les nœuds hypothèse (ESTIMATED). Les nœuds OBSERVED restent partagés. Comme un git branch : seuls les deltas sont stockés.
+
+---
+
+### Dimension C : Top 10 opérations de graphe pour le géospatial OSINT
+
+Du catalogue de 80+ algorithmes, voici les 10 plus pertinents pour Satellite-Spy :
+
+**1. Community Detection (Louvain/Leiden)** — Trouver des clusters d'événements qui s'influencent mutuellement. Appliqué au graphe GDELT : les communautés révèlent des "théâtres d'opération" (cluster Irak-Syrie, cluster Yémen-Arabie, cluster Ukraine-Russie). Chaque communauté est une WatchRegion candidate.
+
+**2. PageRank / Eigenvector Centrality** — Identifier les événements ou acteurs les plus "influents" dans le graphe. Un acteur avec un PageRank élevé (e.g., "Russia") est connecté à beaucoup d'événements critiques via PARTICIPATES. Sert à prioriser les alertes.
+
+**3. Shortest Path (Dijkstra)** — Trouver le chemin le plus court entre un événement déclencheur et un impact marché. Ex : "Military buildup Iran" → SAME_LOCATION → "Shipping threat Hormuz" → CORRELATES_WITH → "Brent price spike". La longueur du path = le nombre d'étapes de propagation = le délai attendu.
+
+**4. Temporal Pattern Matching** — Détecter des séquences d'événements récurrentes. Ex : le pattern "protest → crackdown → sanctions → market reaction" est une sous-séquence connue. Si les 2 premiers événements sont détectés, alerter sur les 2 suivants probables.
+
+**5. Spatial Clustering (DBSCAN/H3)** — Agréger les événements par proximité spatiale. Remplace notre grille 2°×2° par un clustering adaptatif. Les zones denses deviennent des hotspots avec confiance proportionnelle à la densité.
+
+**6. Contagion / Cascading Failure (Eisenberg-Noe adapté)** — Modéliser comment un conflit dans un pays se propage aux voisins. Si 60% des événements d'un pays sont critiques, la "contagion géopolitique" déborde vers les voisins via SAME_LOCATION + CORRELATES_WITH. Le modèle calcule le "systemic risk" régional.
+
+**7. Anomaly Detection (Graph-based)** — Détecter des patterns inhabituels : un acteur normalement diplomatique (IGO) qui apparaît soudainement dans des événements militaires. Ou un pays calme qui a un spike d'événements. L'anomalie est détectée par comparaison avec le baseline du nœud.
+
+**8. Belief Propagation (message passing)** — Propager les probabilités d'escalade à travers le graphe. Chaque nœud envoie un "message" de probabilité à ses voisins. Après convergence, chaque nœud a une probabilité d'être impliqué dans un conflit futur. C'est un GNN simplifié.
+
+**9. Bipartite Matching** — Matcher les événements GDELT avec les événements ACLED pour la cross-validation. Le graphe biparti (GDELT events ↔ ACLED events) est résolu par Hungarian algorithm ou fuzzy matching pondéré. Le résultat : paires (GDELT_event, ACLED_event, match_confidence).
+
+**10. What-If Propagation (déjà implémenté dans IntelligenceGraph)** — Changer une hypothèse (threshold d'alerte, poids de corrélation) et voir la cascade. Mon `IntelligenceGraph.propagateChange()` le fait déjà avec 11 types d'edges et topological sort. C'est la contribution code de S-Agent au SDK.
