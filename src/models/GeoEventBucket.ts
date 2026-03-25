@@ -12,6 +12,7 @@
 
 import type { TruthLayer } from "@/types/quantum-data";
 import type { GDELTEvent, ConflictEvent } from "@/types";
+import { calculateConfidence } from "@/lib/confidence";
 
 // ── Interaction types (from data_bucket.py InteractionType) ─────────────────
 
@@ -155,7 +156,11 @@ export function gdeltToBucket(event: GDELTEvent): GeoEventBucket {
     value: event.goldsteinScale,
     unit: "goldstein",
     truthLayer: "OBSERVED",
-    confidence: Math.min(1, event.numSources / 20), // More sources = higher confidence
+    confidence: calculateConfidence("GDELT", {
+      numSources: event.numSources,
+      numMentions: event.numMentions,
+      hasCoordinates: !!(event.latitude && event.longitude),
+    }),
     modality: "spatial",
     properties: {
       lat: event.latitude,
@@ -179,7 +184,11 @@ export function gdeltToBucket(event: GDELTEvent): GeoEventBucket {
       agentType: "feed",
       method: "gdelt_ingest",
       confidenceBefore: 0,
-      confidenceAfter: Math.min(1, event.numSources / 20),
+      confidenceAfter: calculateConfidence("GDELT", {
+        numSources: event.numSources,
+        numMentions: event.numMentions,
+        hasCoordinates: !!(event.latitude && event.longitude),
+      }),
     }],
     createdAt: event.dateAdded || now,
     createdBy: "S-Agent",
@@ -191,7 +200,9 @@ export function gdeltToBucket(event: GDELTEvent): GeoEventBucket {
  */
 export function acledToBucket(conflict: ConflictEvent): GeoEventBucket {
   const id = `geo-bucket-acled-${conflict.id}`;
-  const confidence = conflict.source === "ACLED" ? 0.85 : 0.6;
+  const confidence = calculateConfidence("ACLED", {
+    isVerified: conflict.source === "ACLED",
+  });
   const now = new Date().toISOString();
 
   // Map ACLED severity to goldstein-like scale

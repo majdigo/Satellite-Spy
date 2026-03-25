@@ -64,9 +64,11 @@ describe("GeoEventBucket (T1)", () => {
       expect(bucket.truthLayer).toBe("OBSERVED");
     });
 
-    test("calculates confidence from source count", () => {
+    test("calculates confidence from source count (unified framework)", () => {
       const bucket = gdeltToBucket(mockGDELT);
-      expect(bucket.confidence).toBe(12 / 20); // 12 sources / 20 max
+      // 12 sources + 45 mentions + coordinates → high confidence (>0.7)
+      expect(bucket.confidence).toBeGreaterThan(0.7);
+      expect(bucket.confidence).toBeLessThanOrEqual(1.0);
     });
 
     test("maps goldstein to severity correctly", () => {

@@ -139,11 +139,12 @@ describe("IntelligenceGrid data pipeline", () => {
       expect(visHigh.size).toBeGreaterThanOrEqual(visLow.size);
     });
 
-    test("opacity maps from confidence", () => {
-      const bucket = gdeltToBucket(mockGDELTEvents[0]); // 8/20 = 0.4 confidence
+    test("opacity maps from confidence (unified framework)", () => {
+      const bucket = gdeltToBucket(mockGDELTEvents[0]); // 8 sources → confidence via framework
       const visual = projectToVisual(bucket);
-      // opacity = 0.4 + 0.4 * 0.6 = 0.64
-      expect(visual.opacity).toBeCloseTo(0.64, 1);
+      // opacity = 0.4 + confidence * 0.6, confidence > 0 → opacity > 0.4
+      expect(visual.opacity).toBeGreaterThan(0.4);
+      expect(visual.opacity).toBeLessThanOrEqual(1.0);
     });
   });
 
