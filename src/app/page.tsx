@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useDataFetcher } from "@/hooks/useDataFetcher";
+import { useEscalationDetector } from "@/hooks/useEscalationDetector";
 import TopBar from "@/components/dashboard/TopBar";
 import Sidebar from "@/components/dashboard/Sidebar";
 import BottomBar from "@/components/dashboard/BottomBar";
@@ -30,6 +31,7 @@ const GlobeViewer = dynamic(
 
 export default function HomePage() {
   useDataFetcher();
+  useEscalationDetector(); // Agentic: auto-detect escalation patterns from incoming data
 
   const { visualFilter, activeRegion, dataSources } = useAppStore();
 
