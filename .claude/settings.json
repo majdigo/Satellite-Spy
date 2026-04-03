@@ -3,7 +3,9 @@
     "allow": [
       "Bash(grep -r \"drone\\\\|DJI\\\\|Mini 3\\\\|MSDK\\\\|YOLO\\\\|OpenCV\\\\|photogrammetry\\\\|NeRF\\\\|SfM\\\\|SLAM\\\\|obstacle\\\\|avoidance\\\\|path.plan\\\\|A\\\\*\" 'c:/Users/majdi/Dropbox \\(Personal\\)/madgic_shared/docs' --include=*.md)",
       "Bash(grep -r \"pytorch\\\\|tensorflow\\\\|keras\\\\|gym\\\\|stable.baselines\\\\|PPO\\\\|DQN\\\\|A3C\" 'c:/Users/majdi/Dropbox \\(Personal\\)' --include=*.py --include=*.md)",
-      "Bash(grep -r \"Unity\\\\|C#\\\\|GameObject\\\\|SceneManager\\\\|prefab\\\\|babylon\\\\|three.js\\\\|webgl\" 'c:/Users/majdi/Dropbox \\(Personal\\)' --include=*.md --include=*.ts --include=*.tsx)"
+      "Bash(grep -r \"Unity\\\\|C#\\\\|GameObject\\\\|SceneManager\\\\|prefab\\\\|babylon\\\\|three.js\\\\|webgl\" 'c:/Users/majdi/Dropbox \\(Personal\\)' --include=*.md --include=*.ts --include=*.tsx)",
+      "Bash(head -100 \"c:/Users/majdi/Dropbox \\(Personal\\)/Bigdata/Satellite-Spy/src/lib/platform/index.ts\")",
+      "Bash(find \"c:/Users/majdi/Dropbox \\(Personal\\)/Bigdata/Satellite-Spy/src\" -name \"*.ts\" -o -name \"*.tsx\")"
     ]
   }
 }
